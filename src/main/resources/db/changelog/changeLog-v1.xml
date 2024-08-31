@@ -1,0 +1,78 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-1">
+        <createSequence incrementBy="50" sequenceName="pays_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-2">
+        <createSequence incrementBy="50" sequenceName="type_piece_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-3">
+        <createSequence incrementBy="50" sequenceName="utilisateur_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-4">
+        <createTable tableName="pays">
+            <column autoIncrement="false" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="paysPK"/>
+            </column>
+            <column name="creation_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="last_update_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="version" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="abreviation" type="VARCHAR(255)"/>
+            <column name="libelle" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-5">
+        <createTable tableName="type_piece">
+            <column autoIncrement="false" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="type_piecePK"/>
+            </column>
+            <column name="creation_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="last_update_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="version" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="libelle" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-6">
+        <createTable tableName="utilisateur">
+            <column autoIncrement="false" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="utilisateurPK"/>
+            </column>
+            <column name="creation_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="last_update_datetime" type="TIMESTAMP(6) WITH TIME ZONE"/>
+            <column name="version" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="adresse" type="VARCHAR(255)"/>
+            <column name="code_invitation" type="VARCHAR(255)"/>
+            <column name="contact" type="VARCHAR(255)"/>
+            <column name="email" type="VARCHAR(255)"/>
+            <column name="fcm_token" type="VARCHAR(255)"/>
+            <column name="nom" type="VARCHAR(255)"/>
+            <column name="numero_piece_identite" type="VARCHAR(255)"/>
+            <column name="prenom" type="VARCHAR(255)"/>
+            <column name="pwd" type="VARCHAR(255)"/>
+            <column name="pays_id" type="BIGINT"/>
+            <column name="type_piece_id" type="BIGINT"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-7">
+        <createIndex indexName="pays_utilisateur_id_idx" tableName="utilisateur">
+            <column name="pays_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-8">
+        <createIndex indexName="type_piece_utilisateur_id_idx" tableName="utilisateur">
+            <column name="type_piece_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-9">
+        <addForeignKeyConstraint baseColumnNames="pays_id" baseTableName="utilisateur" constraintName="FK_pays_utilisateur" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="pays" validate="true"/>
+    </changeSet>
+    <changeSet author="arnaud.ngbandama (generated)" id="1721808271812-10">
+        <addForeignKeyConstraint baseColumnNames="type_piece_id" baseTableName="utilisateur" constraintName="FK_type_piece_utilisateur" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="type_piece" validate="true"/>
+    </changeSet>
+</databaseChangeLog>
