@@ -569,11 +569,16 @@ public class ApiController {
         publication.setPrix(data.getPrix());
         publication.setIdentifiant(messervices.generatePublicationId(
                 (utilisateur.getNom() + utilisateur.getPrenom()), utilisateur.getId()));
-        publication.setDateVoyage(OffsetDateTime.parse(data.getDate() + "T" + data.getHeure() +"+02:00"));
+        //publication.setDateVoyage(OffsetDateTime.parse(data.getDate() + "T" + data.getHeure() +"+02:00"));
+        publication.setDateVoyage(
+                OffsetDateTime.of(
+                        LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
+                                , ZoneOffset.UTC), ZoneOffset.UTC)
+        );
 
-        OffsetDateTime tamponTime = OffsetDateTime.of(
+        /*OffsetDateTime tamponTime = OffsetDateTime.of(
                 LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
-                        , ZoneOffset.UTC), ZoneOffset.UTC);
+                        , ZoneOffset.UTC), ZoneOffset.UTC);*/
 
         //System.out.println("tamponTime : "+ tamponTime.toString());
 
@@ -589,11 +594,13 @@ public class ApiController {
                 .findByVilleDepartAndVilleDestination(villeDepart, villeDestination);
         if(!cibles.isEmpty()){
             // Process :
+            String departDestination = villeDepart.getLibelle() + "  ->  " +
+                    villeDestination.getLibelle();
             List<String> lesCibles = cibles.stream().map(
                     cible -> cible.getUtilisateur().getFcmToken()).toList();
             if(!lesCibles.isEmpty()){
                 firebasemessage.notifySuscriberAboutCible(lesCibles,
-                        publication);
+                        publication, departDestination);
             }
         }
 

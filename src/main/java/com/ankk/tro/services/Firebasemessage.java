@@ -15,9 +15,9 @@ import java.util.List;
 public class Firebasemessage {
 
     @Async
-    public void notifySuscriberAboutCible(List<String> tokens, Publication publication){
+    public void notifySuscriberAboutCible(List<String> tokens, Publication publication, String destination){
         Notification builder = new Notification(publication.getIdentifiant(),
-                ("Réserve initiale : "+ String.valueOf(publication.getReserve()) + " Kg"));
+                (destination + "   Réserve : "+ String.valueOf(publication.getReserve()) + " Kg"));
         List<Message> listeMessage = new ArrayList<>();
         for(String token : tokens){
             Message me = Message.builder()
@@ -53,18 +53,20 @@ public class Firebasemessage {
         Publication publication,
         Pays pays, int reserve)
     {
+        Notification builder = new Notification(publication.getIdentifiant(),
+                ("Souscripteur : " + suscriber.getNom() + " " + suscriber.getPrenom()));
         Message me = Message.builder()
-                //.setNotification(builder)
-                .setToken(owner.getFcmToken())
-                .putData("sujet", "2")  // Subject
-                .putData("id", String.valueOf(suscriber.getId()))  // Feed 'Magasin' table :
-                .putData("nationalite", pays.getAbreviation())  // Feed 'Magasin' table :
-                .putData("nom", suscriber.getNom())
-                .putData("prenom", suscriber.getPrenom())
-                .putData("adresse", suscriber.getAdresse())
-                .putData("idpub", String.valueOf(publication.getId()))
-                .putData("reserve", String.valueOf(reserve))
-                .build();
+            .setNotification(builder)
+            .setToken(owner.getFcmToken())
+            .putData("sujet", "2")  // Subject
+            .putData("id", String.valueOf(suscriber.getId()))  // Feed 'Magasin' table :
+            .putData("nationalite", pays.getAbreviation())  // Feed 'Magasin' table :
+            .putData("nom", suscriber.getNom())
+            .putData("prenom", suscriber.getPrenom())
+            .putData("adresse", suscriber.getAdresse())
+            .putData("idpub", String.valueOf(publication.getId()))
+            .putData("reserve", String.valueOf(reserve))
+            .build();
         try {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
@@ -76,8 +78,11 @@ public class Firebasemessage {
     @Async
     public void notifyOwnerAboutNewChat(Utilisateur receiver, Utilisateur sender, Chat chat)
     {
+        String reduceMessage = chat.getMessage().length() < 15 ?
+                chat.getMessage() :
+                chat.getMessage().substring(0, 14) + "...";
         Notification builder = new Notification((sender.getNom()+" "+sender.getPrenom()),
-                "pomme");
+                reduceMessage);
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(receiver.getFcmToken())
@@ -92,7 +97,6 @@ public class Firebasemessage {
                 .build();
         try {
             FirebaseMessaging.getInstance().send(me);
-            System.out.println("Notif envoyé");
         } catch (FirebaseMessagingException e) {
             System.out.println("notifyOwnerAboutNewChat : "+e.toString());
         }
