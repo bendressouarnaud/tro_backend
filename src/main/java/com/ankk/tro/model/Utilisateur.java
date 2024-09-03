@@ -57,4 +57,8 @@ public class Utilisateur extends AbstractEntity{
 
     @OneToMany(fetch = LAZY, mappedBy = "utilisateurReceiver")
     private Collection<Chat> chatReceiver;
+
+    @OneToOne
+    @JoinColumn(name = "notification_param_id",  foreignKey = @ForeignKey(name = "FK_utilisateur_notification"))
+    private NotificationsParam notificationsParam;
 }

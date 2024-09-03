@@ -6,29 +6,25 @@ import com.ankk.tro.model.*;
 import com.ankk.tro.repositories.*;
 import com.ankk.tro.services.Firebasemessage;
 import com.ankk.tro.services.Messervices;
-import com.ankk.tro.testrestemplate.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.*;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.*;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -47,6 +43,7 @@ public class ApiController {
     private final ReservationRepository reservationRepository;
     private final CibleRepository cibleRepository;
     private final ChatRepository chatRepository;
+    private final NotificationsParamRepository notificationsParamRepository;
     private final Messervices messervices;
     private final Firebasemessage firebasemessage;
 
@@ -203,9 +200,11 @@ public class ApiController {
             HttpServletRequest request
     )
     {
+        boolean newUser = false;
         // find user :
         Utilisateur ur = utilisateurRepository.findByEmail(user.getEmail()).orElse(null);
         if(ur == null){
+            newUser = true;
             ur = new Utilisateur();
             ur.setPwd(messervices.generatePwd(
                     (user.getNom().trim() + user.getPrenom().trim())));
@@ -237,6 +236,17 @@ public class ApiController {
             paysRepository.save(pays);
         }
         ur.setPays(pays);
+
+        // From there
+        if(newUser){
+            NotificationsParam notificationsParam = NotificationsParam.builder()
+                    .choix(0)
+                    .debut(OffsetDateTime.now(Clock.systemUTC()))
+                    .fin(OffsetDateTime.now(Clock.systemUTC()))
+                    .build();
+            notificationsParamRepository.save(notificationsParam);
+            ur.setNotificationsParam(notificationsParam);
+        }
         utilisateurRepository.save(ur);
 
         Ville villeResidence = villeRepository.findById(user.getIdville()).orElse(null);
@@ -575,19 +585,10 @@ public class ApiController {
                         LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
                                 , ZoneOffset.UTC), ZoneOffset.UTC)
         );
-
-        /*OffsetDateTime tamponTime = OffsetDateTime.of(
-                LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
-                        , ZoneOffset.UTC), ZoneOffset.UTC);*/
-
-        //System.out.println("tamponTime : "+ tamponTime.toString());
-
-
-        /*publication.setDateVoyage(OffsetDateTime.of(
-                LocalDateTime.ofEpochSecond(data.getMilliseconds(), 0
-                        , ZoneOffset.UTC), ZoneOffset.UTC)
-        );*/
         publicationRepository.save(publication);
+
+        // Create temporary :
+        final Publication pubTamp = publication;
 
         // Look for those who are interested :
         List<Cible> cibles = cibleRepository
@@ -596,8 +597,14 @@ public class ApiController {
             // Process :
             String departDestination = villeDepart.getLibelle() + "  ->  " +
                     villeDestination.getLibelle();
-            List<String> lesCibles = cibles.stream().map(
-                    cible -> cible.getUtilisateur().getFcmToken()).toList();
+            List<String> lesCibles = cibles.stream()
+                    .filter(cible ->
+                        messervices.
+                            checkNotificationRestriction(
+                                cible.getUtilisateur(), pubTamp.getDateVoyage()))
+                    .map(
+                        cible -> cible.getUtilisateur().getFcmToken()
+                    ).toList();
             if(!lesCibles.isEmpty()){
                 firebasemessage.notifySuscriberAboutCible(lesCibles,
                         publication, departDestination);
@@ -670,6 +677,31 @@ public class ApiController {
         reservationRepository.save(reservation);
         // Notify to SUSCRIBER :
 
+        return ResponseEntity.ok(Optional.empty());
+    }
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/managenotification")
+    public ResponseEntity<?> managenotification(
+            @RequestBody NotificationRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Utilisateur user = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        assert user != null;
+        NotificationsParam notificationsParam = user.getNotificationsParam();
+        // Update :
+        notificationsParam.setChoix(data.getChoix());
+        if(data.getStartdatetime() > 0 && data.getEnddatetime() > 0){
+            notificationsParam.setDebut(OffsetDateTime.of(
+                    LocalDateTime.ofEpochSecond((data.getStartdatetime() / 1000), 0
+                            , ZoneOffset.UTC), ZoneOffset.UTC));
+            notificationsParam.setFin(OffsetDateTime.of(
+                    LocalDateTime.ofEpochSecond((data.getEnddatetime() / 1000), 0
+                            , ZoneOffset.UTC), ZoneOffset.UTC));
+        }
+        notificationsParamRepository.save(notificationsParam);
         return ResponseEntity.ok(Optional.empty());
     }
 }

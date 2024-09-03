@@ -1,8 +1,10 @@
 package com.ankk.tro.services;
 
+import com.ankk.tro.model.Utilisateur;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 
 @Service
@@ -38,5 +40,19 @@ public class Messervices {
         finalName.append(String.valueOf(offsetDateTime.getMonthValue()));
         finalName.append(String.valueOf(offsetDateTime.getDayOfMonth()));
         return finalName.toString();
+    }
+
+    public boolean checkNotificationRestriction(Utilisateur utilisateur, OffsetDateTime creation){
+        if(utilisateur.getNotificationsParam().getChoix() == 1){
+            OffsetDateTime debut = utilisateur.getNotificationsParam().getDebut();
+            OffsetDateTime fin = utilisateur.getNotificationsParam().getFin();
+            Duration durationDebut = Duration.between(debut, creation);
+            Duration durationFin = Duration.between(fin, creation);
+            boolean retour = durationDebut.getSeconds() >= 0 && durationFin.getSeconds() <= 0;
+            return retour;
+        }
+        else{
+            return true;
+        }
     }
 }
