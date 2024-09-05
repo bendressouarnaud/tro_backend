@@ -70,92 +70,6 @@ public class ApiController {
         } catch (IOException e) {
             System.out.println("Create FirebaseApp Error : " + e.getMessage());
         }
-
-        //System.out.println(messervices.generatePublicationId("Koffi Konan Aranud", 1));
-
-
-
-        //
-        /*Utilisateur tp = utilisateurRepository.findAllByOrderByNomAsc().get(0);
-        System.out.println("Usr : "+
-                trousseOutil.decrypt(tp.getMotdepasse(), javaAesKey, javaAesChain)
-        );*/
-        /*System.out.println(OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
-                format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-        System.out.println(ZonedDateTime.now(ZoneId.of( "Africa/Tunis" )).format(
-                DateTimeFormatter.ISO_OFFSET_DATE_TIME));  */
-
-
-        /*KeycloakManagerCustom.initialiser("http://localhost:8001/realms/gcatempsreel/protocol/openid-connect/token",
-                "backend-adtms", "iKnDPS1anMz3qlDhbRWHB7Wyg8ycsIgO");
-        BeanKeycloakAccessToken beanKeycloakAccessToken = KeycloakManagerCustom.getInstance();
-        if(beanKeycloakAccessToken != null){
-            System.out.println("tokenKeycloak : "+ beanKeycloakAccessToken.getAccessToken());
-            System.out.println("Expires IN : "+ beanKeycloakAccessToken.getExpiresIn().toString());
-        }
-
-        try{
-            GtrApiSendRequest apiRequest = new GtrApiSendRequest();
-            apiRequest.setSourceSoftware("TOL");
-            apiRequest.setEventType(0);
-            apiRequest.setEventDatetime("2024-05-06T10:40:07+01:00");
-            apiRequest.setGeneratedDatetime("2024-05-06T10:37:07+01:00");
-            apiRequest.setLatitude(46.8115965d);
-            apiRequest.setLongitude(4.7763397d);
-            apiRequest.setEventCode("GTR_AAR");
-            apiRequest.setDescription("The truck has entered geofence area");
-            apiRequest.setAlert(false);
-            apiRequest.setEnable(false);
-            apiRequest.setStatus(1);
-            apiRequest.setSeverity(0);
-            apiRequest.setOrderNumber("12Az");
-            apiRequest.setTmsStopOrder(1);
-
-            JSONObject jObject = new JSONObject();
-            jObject.put("sourceSoftware", "TOL");
-            jObject.put("eventType", 0);
-            jObject.put("eventDatetime", "2024-05-06T10:40:07+01:00");
-            jObject.put("generatedDatetime", "2024-05-06T10:37:07+01:00");
-            jObject.put("latitude", 46.8115965);
-            jObject.put("longitude", 46.8115965);
-            jObject.put("eventCode", "GTR_AAR");
-            jObject.put("description", "The truck has entered geofence area");
-            jObject.put("isAlert", false);
-            jObject.put("enable", false);
-            jObject.put("status", 1);
-            jObject.put("severity", 0);
-			jObject.put("orderNumber", "12Az");
-			jObject.put("tmsStopOrder", 1);
-
-            ObjectMapper mapper = new ObjectMapper();
-            String data = mapper.writeValueAsString(apiRequest);
-
-            // Create a RestTemplate for making HTTP requests
-            RestTemplate restTemplate = new RestTemplate();
-            restTemplate.setErrorHandler(new MyRestErrorHandler());
-            // Set up the request headers
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(beanKeycloakAccessToken.getAccessToken());
-            //headers.set("Authorization", "Bearer " + beanKeycloakAccessToken.getAccessToken());
-            //headers.add("Content-Type", MediaType.APPLICATION_JSON.toString());
-            headers.set("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-            headers.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-
-
-            System.out.println("Data : "+jObject.toString());
-            // Create the HTTP request entity
-            HttpEntity<GtrApiSendRequest> requestEntity = new HttpEntity<>(apiRequest, headers);
-            // Make the request to Keycloak token endpoint
-            // ResponseEntity<EventCreationResponse> response = restTemplate.postForObject(
-            EventCreationResponse response = restTemplate.postForObject(
-                    "http://localhost:8090/events",
-                    requestEntity, EventCreationResponse.class);
-
-            System.out.println("Statut : "+ String.valueOf(response.getCode()));
-        }
-        catch (Exception ex){
-            System.out.println("Exception personalisee : "+ex);
-        }*/
     }
 
 
@@ -579,7 +493,6 @@ public class ApiController {
         publication.setPrix(data.getPrix());
         publication.setIdentifiant(messervices.generatePublicationId(
                 (utilisateur.getNom() + utilisateur.getPrenom()), utilisateur.getId()));
-        //publication.setDateVoyage(OffsetDateTime.parse(data.getDate() + "T" + data.getHeure() +"+02:00"));
         publication.setDateVoyage(
                 OffsetDateTime.of(
                         LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
