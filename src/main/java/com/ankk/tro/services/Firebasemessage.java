@@ -19,27 +19,28 @@ public class Firebasemessage {
         Notification builder = new Notification(publication.getIdentifiant(),
                 (destination + "   Réserve : "+ String.valueOf(publication.getReserve()) + " Kg"));
         List<Message> listeMessage = new ArrayList<>();
-        for(String token : tokens){
-            Message me = Message.builder()
-                    .setNotification(builder)
-                    .setToken(token)
-                    .putData("sujet", "1")  // Subject
-                    .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
-                    .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
-                    .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
-                    .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
-                    .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
-                    .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
-                    .putData("reserve", String.valueOf(publication.getReserve()))
-                    .putData("identifiant", publication.getIdentifiant())
-                    .putData("prix", String.valueOf(publication.getPrix()))
-                    .putData("devise", String.valueOf(publication.getDevise().getId()))
-                    .build();
-            // Add it :
-            listeMessage.add(me);
-        }
         try {
-            FirebaseMessaging.getInstance().sendAll(listeMessage);
+            for(String token : tokens){
+                Message me = Message.builder()
+                        .setNotification(builder)
+                        .setToken(token)
+                        .putData("sujet", "1")  // Subject
+                        .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
+                        .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
+                        .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
+                        .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
+                        .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
+                        .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
+                        .putData("reserve", String.valueOf(publication.getReserve()))
+                        .putData("identifiant", publication.getIdentifiant())
+                        .putData("prix", String.valueOf(publication.getPrix()))
+                        .putData("devise", String.valueOf(publication.getDevise().getId()))
+                        .build();
+                // Add it :
+                FirebaseMessaging.getInstance().send(me);
+                //listeMessage.add(me);
+                //FirebaseMessaging.getInstance().sendAll(listeMessage);
+            }
         } catch (FirebaseMessagingException e) {
             System.out.println("notifySuscriberAboutCible : "+e.toString());
         }

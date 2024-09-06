@@ -57,6 +57,9 @@ public class ApiController {
     @PostConstruct
     private void initialize(){
 
+        /*System.out.println("Expires IN : "+ OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
+                format(DateTimeFormatter.ISO_OFFSET_DATE_TIME).split("T")[1]);*/
+
         try {
             FirebaseOptions options = new FirebaseOptions.Builder()
                     .setCredentials(GoogleCredentials.fromStream(
