@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class Firebasemessage {
@@ -50,24 +51,24 @@ public class Firebasemessage {
     // Notify OWNER for a new RESERVATION :
     @Async
     public void notifyOwnerAboutNewReservation(Utilisateur owner,
-        Utilisateur suscriber,
-        Publication publication,
-        Pays pays, int reserve)
+                                               Utilisateur suscriber,
+                                               Publication publication,
+                                               Pays pays, int reserve)
     {
         Notification builder = new Notification(publication.getIdentifiant(),
                 ("Souscripteur : " + suscriber.getNom() + " " + suscriber.getPrenom()));
         Message me = Message.builder()
-            .setNotification(builder)
-            .setToken(owner.getFcmToken())
-            .putData("sujet", "2")  // Subject
-            .putData("id", String.valueOf(suscriber.getId()))  // Feed 'Magasin' table :
-            .putData("nationalite", pays.getAbreviation())  // Feed 'Magasin' table :
-            .putData("nom", suscriber.getNom())
-            .putData("prenom", suscriber.getPrenom())
-            .putData("adresse", suscriber.getAdresse())
-            .putData("idpub", String.valueOf(publication.getId()))
-            .putData("reserve", String.valueOf(reserve))
-            .build();
+                .setNotification(builder)
+                .setToken(owner.getFcmToken())
+                .putData("sujet", "2")  // Subject
+                .putData("id", String.valueOf(suscriber.getId()))  // Feed 'Magasin' table :
+                .putData("nationalite", pays.getAbreviation())  // Feed 'Magasin' table :
+                .putData("nom", suscriber.getNom())
+                .putData("prenom", suscriber.getPrenom())
+                .putData("adresse", suscriber.getAdresse())
+                .putData("idpub", String.valueOf(publication.getId()))
+                .putData("reserve", String.valueOf(reserve))
+                .build();
         try {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
@@ -100,6 +101,35 @@ public class Firebasemessage {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
             System.out.println("notifyOwnerAboutNewChat : "+e.toString());
+        }
+    }
+
+
+    @Async
+    public void notifySuscriberAboutReservationValidation(
+        Utilisateur suscriber, Utilisateur owner,
+        Reservation reservation, String nationnalite
+    )
+    {
+        Notification builder = new Notification(
+                reservation.getPublication().getIdentifiant(),
+                "Paiement effectué");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(suscriber.getFcmToken())
+                .putData("sujet", "4")  // Subject
+                .putData("id", String.valueOf(owner.getId()))
+                .putData("nom", owner.getNom())
+                .putData("prenom", owner.getPrenom())
+                .putData("adresse", owner.getAdresse())
+                .putData("nationalite", nationnalite)
+                .putData("publicationid", String.valueOf(reservation.getPublication().getId()))
+                .putData("reservevalide", String.valueOf(reservation.getReserve()))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
         }
     }
 

@@ -1,12 +1,15 @@
 package com.ankk.tro.controller;
 
+import com.ankk.tro.enums.ReservationState;
 import com.ankk.tro.model.Pays;
+import com.ankk.tro.model.Publication;
 import com.ankk.tro.model.Reservation;
 import com.ankk.tro.model.Utilisateur;
 import com.ankk.tro.repositories.PaysRepository;
 import com.ankk.tro.repositories.PublicationRepository;
 import com.ankk.tro.repositories.ReservationRepository;
 import com.ankk.tro.repositories.UtilisateurRepository;
+import com.ankk.tro.services.Firebasemessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +21,8 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class ValidationController {
     private final ReservationRepository reservationRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PaysRepository paysRepository;
+    private final Firebasemessage firebasemessage;
 
 
     // M E T H O D S
@@ -55,6 +61,34 @@ public class ValidationController {
                 OffsetDateTime.now(Clock.systemUTC()).
                         truncatedTo(ChronoUnit.SECONDS).
                         format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+        // persist
+        reservation.setReservationState(ReservationState.EFFECTUE);
+        reservationRepository.save(reservation);
+
+        // Return response :
+        Utilisateur owner = reservation.getPublication().getUtilisateur();
+
+        Map<String, Object> stringMap = new HashMap<>();
+        stringMap.put("id", owner.getId());
+        stringMap.put("nom", owner.getNom());
+        stringMap.put("prenom", owner.getPrenom());
+        stringMap.put("adresse", owner.getAdresse());
+        Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
+        stringMap.put("nationnalite", paysOwner.getAbreviation());
+        stringMap.put("publicationid", reservation.getPublication().getIdentifiant());
+
+        // Notify the publication's OWNER
+        Pays paysSuscriber = paysRepository.findById(utilisateur.getPays().getId()).orElse(null);
+        firebasemessage.notifyOwnerAboutNewReservation(owner,utilisateur,reservation.getPublication(),
+                paysSuscriber,
+                reservation.getReserve());
+
+        // Notify SUSCRIBER that PAYMENT has been DONE :
+        firebasemessage.notifySuscriberAboutReservationValidation(
+                utilisateur,owner,reservation,
+                paysOwner.getAbreviation());
+
         return modelAndView;
     }
 

@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -625,35 +626,27 @@ public class ApiController {
             HttpServletRequest request
     )
     {
+        Map<String, Object> stringMap = new HashMap<>();
         // New LINE :
         Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
         Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
-        //
-        Reservation reservation = new Reservation();
-        reservation.setReserve(data.getReserve());
-        reservation.setMontant(data.getMontant());
-        reservation.setUtilisateur(suscriber);
-        reservation.setPublication(publication);
-        reservation.setReservationState(ReservationState.EN_COURS);
-        // persist
-        reservationRepository.save(reservation);
-
-        // Return response :
-        Utilisateur owner = utilisateurRepository.findById(publication.getUtilisateur().getId()).orElse(null);
-        Map<String, Object> stringMap = new HashMap<>();
-        stringMap.put("id", owner.getId());
-        stringMap.put("nom", owner.getNom());
-        stringMap.put("prenom", owner.getPrenom());
-        stringMap.put("adresse", owner.getAdresse());
-        Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
-        stringMap.put("nationnalite", paysOwner.getAbreviation());
-
-        // Notify the publication's OWNER
-        Pays paysSuscriber = paysRepository.findById(suscriber.getPays().getId()).orElse(null);
-        firebasemessage.notifyOwnerAboutNewReservation(owner,suscriber,publication,paysSuscriber,
-                data.getReserve());
-
-        return ResponseEntity.ok(stringMap);
+        // Find RESERVATION
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublication(suscriber, publication);
+        if(reservation.getReservationState() == ReservationState.EFFECTUE) {
+            // Return response :
+            Utilisateur owner = publication.getUtilisateur();
+            stringMap.put("id", owner.getId());
+            stringMap.put("nom", owner.getNom());
+            stringMap.put("prenom", owner.getPrenom());
+            stringMap.put("adresse", owner.getAdresse());
+            Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
+            stringMap.put("nationnalite", paysOwner.getAbreviation());
+            return ResponseEntity.ok(stringMap);
+        }
+        else{
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("");
+        }
     }
 
     @CrossOrigin("*")
