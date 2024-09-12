@@ -14,11 +14,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -41,6 +44,7 @@ public class ApiController {
     private final VilleRepository villeRepository;
     private final PublicationRepository publicationRepository;
     private final ReservationRepository reservationRepository;
+    private final ApiRequestRepository apiRequestRepository;
     private final CibleRepository cibleRepository;
     private final ChatRepository chatRepository;
     private final NotificationsParamRepository notificationsParamRepository;
@@ -50,6 +54,14 @@ public class ApiController {
     @Value("${app.firebase-config}")
     private String firebaseConfig;
     FirebaseApp firebaseApp;
+
+    @Value("${sfp.wave.token}")
+    private String waveToken;
+    @Value("${sfp.wave.apiurl}")
+    private String waveUrl;
+    @Value("${backend.web.url}")
+    private String backendWebUrl;
+
 
 
 
@@ -533,6 +545,75 @@ public class ApiController {
         stringMap.put("date", publication.getCreationDatetime().truncatedTo(ChronoUnit.SECONDS).
                 format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         stringMap.put("identifiant", publication.getIdentifiant());
+        return ResponseEntity.ok(stringMap);
+    }
+
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/generatewaveid")
+    public ResponseEntity<?> generatewaveid(
+            @RequestBody WavePaymentRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        //
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublication(suscriber, publication);
+        // Create NEW OBJECT if needed :
+        if(reservation == null) reservation = new Reservation();
+        reservation.setReserve(data.getReserve());
+        reservation.setMontant(data.getAmount());
+        reservation.setUtilisateur(suscriber);
+        reservation.setPublication(publication);
+        reservation.setReservationState(ReservationState.EN_COURS);
+        // persist
+        reservationRepository.save(reservation);
+
+        Map<String, Object> stringMap = new HashMap<>();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer "+ waveToken);
+        headers.add("Content-Type", "application/json");
+
+        try {
+            // Call WEB Services :
+            RestTemplate restTemplate = new RestTemplate();
+            WavePaymentOriginalRequest objectRequest = new WavePaymentOriginalRequest();
+            objectRequest.setAmount(data.getAmount());
+            objectRequest.setCurrency(data.getCurrency());
+            objectRequest.setErrorUrl(
+                    backendWebUrl + "trobackend/invalidation/" +
+                    reservation.getId());
+            objectRequest.setSuccessUrl(
+                    backendWebUrl + "trobackend/validation/" +
+                        reservation.getId()
+            );
+
+            HttpEntity<WavePaymentOriginalRequest> entity = new HttpEntity<>(objectRequest, headers);
+            ResponseEntity<WavePaymentResponse> responseEntity = restTemplate.postForEntity(waveUrl,
+                    entity, WavePaymentResponse.class);
+            if(responseEntity.getStatusCode().is2xxSuccessful()){
+                // Persist :
+                WavePaymentResponse wavePaymentResponse = responseEntity.getBody();
+                ApiRequest apiRequest = new ApiRequest();
+                apiRequest.setApiId(wavePaymentResponse.getId());
+                apiRequest.setLaunchUrl(wavePaymentResponse.getWaveLaunchUrl());
+                apiRequest.setReservation(reservation);
+                apiRequestRepository.save(apiRequest);
+
+                stringMap.put("id", wavePaymentResponse.getId());
+                stringMap.put("wave_launch_url", wavePaymentResponse.getWaveLaunchUrl());
+                return ResponseEntity.ok(stringMap);
+            }
+        }
+        catch (Exception exc){
+            System.out.println("Exception (generatewaveid) : "+exc.toString());
+        }
+
+        stringMap.put("id", "");
+        stringMap.put("wave_launch_url", "");
         return ResponseEntity.ok(stringMap);
     }
 

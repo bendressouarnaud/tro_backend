@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>Validation paiement</title>
+
+    <style>
+        .contenu {
+            background-color: #e8f5eb;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="contenu">
+        <h1><span th:text="${client}"> !</span></h1>
+        <p>Votre paiement de <span th:text="${montant}"></span></p>
+        <p>Nous vous remercions</p>
+        <p>Date de l'op&eacute;ration <span th:text="${date}"></span></p>
+    </div>
+</body>
+</html>

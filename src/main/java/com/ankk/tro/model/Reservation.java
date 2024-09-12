@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.Collection;
+
 import static jakarta.persistence.FetchType.LAZY;
 
 @Getter
@@ -35,4 +37,7 @@ public class Reservation extends AbstractEntity{
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "publication_id", foreignKey = @ForeignKey(name = "FK_publication_reservation"))
     private Publication publication;
+
+    @OneToMany(fetch = LAZY, mappedBy = "reservation")
+    private Collection<ApiRequest> apiRequests;
 }
