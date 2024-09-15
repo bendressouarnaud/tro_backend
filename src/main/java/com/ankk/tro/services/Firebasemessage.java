@@ -133,4 +133,25 @@ public class Firebasemessage {
         }
     }
 
+
+    @Async
+    public void notifySuscriberAboutDelivery(
+            Utilisateur suscriber, Publication publication
+    )
+    {
+        Notification builder = new Notification(
+                publication.getIdentifiant(),
+                "Colis remis au destinataire");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(suscriber.getFcmToken())
+                .putData("sujet", "5")  // Subject
+                .putData("idpub", String.valueOf(publication.getId()))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
+        }
+    }
 }

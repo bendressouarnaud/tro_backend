@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum ReservationState {
     EN_COURS(0),
     EFFECTUE(1),
-    TRAITE(2);
+    TRAITE(2),
+    RECU(2);
 
     private final int value;
 }

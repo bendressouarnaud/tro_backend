@@ -70,8 +70,11 @@ public class ApiController {
     @PostConstruct
     private void initialize(){
 
-        /*System.out.println("Expires IN : "+ OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
-                format(DateTimeFormatter.ISO_OFFSET_DATE_TIME).split("T")[1]);*/
+        /*String getHourOffset = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
+                format(DateTimeFormatter.ISO_OFFSET_DATE_TIME).split("T")[1];
+        String offSet = getHourOffset.substring(8);
+
+        System.out.println("offSet : "+ offSet);*/
 
         try {
             FirebaseOptions options = new FirebaseOptions.Builder()
@@ -551,6 +554,49 @@ public class ApiController {
 
 
     @CrossOrigin("*")
+    @PostMapping(path = "/bookreservation")
+    public ResponseEntity<?> bookreservation(
+            @RequestBody ReservationRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        //
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublication(suscriber, publication);
+        // Create NEW OBJECT if needed :
+        if(reservation == null) reservation = new Reservation();
+        reservation.setReserve(data.getReserve());
+        reservation.setMontant(data.getMontant());
+        reservation.setUtilisateur(suscriber);
+        reservation.setPublication(publication);
+        reservation.setReservationState(ReservationState.EFFECTUE);
+        // persist
+        reservationRepository.save(reservation);
+
+        // Return response :
+        Map<String, Object> stringMap = new HashMap<>();
+        Utilisateur owner = publication.getUtilisateur();
+        stringMap.put("id", owner.getId());
+        stringMap.put("nom", owner.getNom());
+        stringMap.put("prenom", owner.getPrenom());
+        stringMap.put("adresse", owner.getAdresse());
+        Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
+        stringMap.put("nationnalite", paysOwner.getAbreviation());
+
+        // Notify the publication's OWNER
+        Pays paysSuscriber = paysRepository.findById(suscriber.getPays().getId()).orElse(null);
+        firebasemessage.notifyOwnerAboutNewReservation(owner,suscriber,reservation.getPublication(),
+                paysSuscriber,
+                reservation.getReserve());
+
+        return ResponseEntity.ok(stringMap);
+    }
+
+
+    @CrossOrigin("*")
     @PostMapping(path = "/generatewaveid")
     public ResponseEntity<?> generatewaveid(
             @RequestBody WavePaymentRequest data,
@@ -666,7 +712,26 @@ public class ApiController {
         reservation.setReservationState(ReservationState.TRAITE);
         reservationRepository.save(reservation);
         // Notify to SUSCRIBER :
+        firebasemessage.notifySuscriberAboutDelivery(suscriber, publication);
+        return ResponseEntity.ok(Optional.empty());
+    }
 
+    @CrossOrigin("*")
+    @PostMapping(path = "/markreceipt")
+    public ResponseEntity<?> markreceipt(
+            @RequestBody DeliveryRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        //
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublication(suscriber, publication);
+        // Update :
+        reservation.setReservationState(ReservationState.RECU);
+        reservationRepository.save(reservation);
         return ResponseEntity.ok(Optional.empty());
     }
 
