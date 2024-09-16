@@ -45,6 +45,9 @@ public class Ville{
     @JoinColumn(name = "pays_id", foreignKey = @ForeignKey(name = "FK_pays_ville"))
     private Pays pays;
 
+    @OneToMany(fetch = LAZY, mappedBy = "villeResidence")
+    private Collection<Utilisateur> utilisateurs;
+
     @OneToMany(fetch = LAZY, mappedBy = "villeDepart")
     private Collection<Publication> publicationdep;
 

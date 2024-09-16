@@ -19,6 +19,7 @@ import static jakarta.persistence.FetchType.LAZY;
 @Table(
     indexes = {
         @Index(name = "pays_utilisateur_id_idx", columnList = "pays_id"),
+        @Index(name = "ville_utilisateur_id_idx", columnList = "ville_residence_id"),
         @Index(name = "type_piece_utilisateur_id_idx", columnList = "type_piece_id")
     }
 )
@@ -38,6 +39,10 @@ public class Utilisateur extends AbstractEntity{
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "pays_id", foreignKey = @ForeignKey(name = "FK_pays_utilisateur"))
     private Pays pays;
+
+    @ManyToOne(fetch = LAZY)
+    @JoinColumn(name = "ville_residence_id", foreignKey = @ForeignKey(name = "FK_ville_utilisateur"))
+    private Ville villeResidence;
 
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "type_piece_id", foreignKey = @ForeignKey(name = "FK_type_piece_utilisateur"))

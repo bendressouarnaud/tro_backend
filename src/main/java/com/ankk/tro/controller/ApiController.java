@@ -170,6 +170,17 @@ public class ApiController {
         }
         ur.setPays(pays);
 
+        // Process on VILLE :
+        Ville villeResidence = villeRepository.findById(user.getIdville()).orElse(null);
+        if(villeResidence == null){
+            villeResidence = new Ville();
+            villeResidence.setId(user.getIdville());
+            villeResidence.setLibelle(user.getVille());
+            villeResidence.setPays(pays);
+            villeRepository.save(villeResidence);
+        }
+        ur.setVilleResidence(villeResidence);
+
         // From there
         if(newUser){
             NotificationsParam notificationsParam = NotificationsParam.builder()
@@ -182,30 +193,23 @@ public class ApiController {
         }
         utilisateurRepository.save(ur);
 
-        Ville villeResidence = villeRepository.findById(user.getIdville()).orElse(null);
-        if(villeResidence == null){
-            villeResidence = new Ville();
-            villeResidence.setId(user.getIdville());
-            villeResidence.setLibelle(user.getVille());
-            villeResidence.setPays(pays);
-            villeRepository.save(villeResidence);
-        }
-
         // Create DEFAULT 'CIBLE'
         Cible cible = new Cible();
-        cible.setUtilisateur(ur);
-        cible.setPaysDepart(pays);
-        cible.setVilleDepart(villeResidence);
-        cible.setPaysDestination(pays);
-        cible.setVilleDestination(villeResidence);
-        cible.setTopic("");
-        cibleRepository.save(cible);
+        if(newUser) {
+            cible.setUtilisateur(ur);
+            cible.setPaysDepart(pays);
+            cible.setVilleDepart(villeResidence);
+            cible.setPaysDestination(pays);
+            cible.setVilleDestination(villeResidence);
+            cible.setTopic("");
+            cibleRepository.save(cible);
+        }
 
         //
         Map<String, Object> stringMap = new HashMap<>();
         stringMap.put("userid", ur.getId());
         stringMap.put("typepiece", user.getTypepieceidentite());
-        stringMap.put("cibleid", cible.getId());
+        stringMap.put("cibleid", newUser ? cible.getId() : 0);
         return ResponseEntity.ok(stringMap);
     }
 
@@ -229,6 +233,7 @@ public class ApiController {
         stringMap.put("fcmtoken", ur != null ? ur.getFcmToken() : "");
         stringMap.put("pwd", "");
         stringMap.put("codeinvitation", "");
+        stringMap.put("villeresidence", ur != null ? ur.getVilleResidence().getId() : 0);
         List<CibleBean> cibleBean = new ArrayList<>();
         List<PublicationBean> publicationBeans = new ArrayList<>();
         List<UserBean> userBeans = new ArrayList<>();
