@@ -290,6 +290,7 @@ public class ApiController {
                 // New Objects :
                 publicationBean.setPrix(publication.getPrix());
                 publicationBean.setDevise(publication.getDevise().getId());
+                publicationBean.setRead(1);
                 publicationBeans.add(publicationBean);
 
                 // Now get USER who created the PUBLICATION :
@@ -328,6 +329,7 @@ public class ApiController {
                 // New Objects :
                 publicationBean.setPrix(publication.getPrix());
                 publicationBean.setDevise(publication.getDevise().getId());
+                publicationBean.setRead(1);
                 publicationBeans.add(publicationBean);
 
                 // Check if PEOPLE has suscribed to that PUBLICATION :
@@ -762,6 +764,29 @@ public class ApiController {
                             , ZoneOffset.UTC), ZoneOffset.UTC));
         }
         notificationsParamRepository.save(notificationsParam);
+        return ResponseEntity.ok(Optional.empty());
+    }
+
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/sendaccusereception")
+    public ResponseEntity<?> sendaccusereception(
+            @RequestBody AccuseReceptionRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Chat chat = chatRepository.findByIdentifiant(data.getIdentifiant());
+        if(chat != null){
+            // Send FCM Notif :
+            Utilisateur usr = utilisateurRepository.findById(
+                    chat.getUtilisateurSender().getId()).orElse(null);
+            if(usr != null) {
+                //System.out.println("not null");
+                firebasemessage.notifySenderAboutChatReceipt(usr,
+                        data.getIdentifiant());
+            }
+        }
         return ResponseEntity.ok(Optional.empty());
     }
 }

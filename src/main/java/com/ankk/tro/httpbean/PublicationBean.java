@@ -14,4 +14,5 @@ public class PublicationBean {
     private String identifiant;
 
     private int prix;
+    private int read;
 }

@@ -154,4 +154,27 @@ public class Firebasemessage {
             System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
         }
     }
+
+
+    @Async
+    public void notifySenderAboutChatReceipt(
+            Utilisateur sender, String identifiant
+    )
+    {
+        /*Notification builder = new Notification(
+                publication.getIdentifiant(),
+                "Colis remis au destinataire");*/
+        //System.out.println("Sender ID : " + String.valueOf(sender.getId()));
+        Message me = Message.builder()
+                //.setNotification(builder)
+                .setToken(sender.getFcmToken())
+                .putData("sujet", "6")  // Subject
+                .putData("identifiant", identifiant)
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
+        }
+    }
 }
