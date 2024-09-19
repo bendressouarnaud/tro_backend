@@ -782,7 +782,6 @@ public class ApiController {
             Utilisateur usr = utilisateurRepository.findById(
                     chat.getUtilisateurSender().getId()).orElse(null);
             if(usr != null) {
-                //System.out.println("not null");
                 firebasemessage.notifySenderAboutChatReceipt(usr,
                         data.getIdentifiant());
             }
