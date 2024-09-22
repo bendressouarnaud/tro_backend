@@ -92,6 +92,14 @@ public class ValidationController {
         return modelAndView;
     }
 
+    @GetMapping("/confidentialite")
+    public ModelAndView confidentialite() {
+        // Find RESERVATION :
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("confidentialite");
+        return modelAndView;
+    }
+
 
     @GetMapping("/invalidation/{reservationId}")
     public ModelAndView invalidation(@PathVariable long reservationId) {

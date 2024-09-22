@@ -136,11 +136,14 @@ public class ApiController {
         boolean newUser = false;
         // find user :
         Utilisateur ur = utilisateurRepository.findByEmail(user.getEmail()).orElse(null);
-        if(ur == null){
+        if(ur == null && user.getIduser() == 0){
             newUser = true;
             ur = new Utilisateur();
             ur.setPwd(messervices.generatePwd(
                     (user.getNom().trim() + user.getPrenom().trim())));
+        }
+        else if(ur != null && user.getIduser() == 0){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
         // Feed or Update field :
         ur.setNom(user.getNom().trim());
@@ -266,7 +269,8 @@ public class ApiController {
 
                 Utilisateur publisher = publication.getUtilisateur();
                 // Check if this PUBLICATION has been booked by current CUSTOMER
-                Reservation reservation = reservationRepository.findByUtilisateur(ur);
+                Reservation reservation = reservationRepository.
+                        findByUtilisateurAndPublication(ur, publication);
 
                 PublicationBean publicationBean = new PublicationBean();
                 publicationBean.setId(publication.getId());
@@ -363,7 +367,9 @@ public class ApiController {
         // New Objects
         stringMap.put("publicationowner", userBeans);
         stringMap.put("subscriptions", souscriptionsBeans);
-        return ResponseEntity.ok(stringMap);
+        return ur != null ?
+            ResponseEntity.ok(stringMap) :
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
 
