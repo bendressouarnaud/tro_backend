@@ -142,7 +142,7 @@ public class ApiController {
             ur.setPwd(messervices.generatePwd(
                     (user.getNom().trim() + user.getPrenom().trim())));
         }
-        else if(ur != null && user.getIduser() == 0){
+        else if(ur != null && (user.getIduser() == 0 || ur.getActive() == 0)){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
         // Feed or Update field :
@@ -194,6 +194,8 @@ public class ApiController {
             notificationsParamRepository.save(notificationsParam);
             ur.setNotificationsParam(notificationsParam);
         }
+        //
+        ur.setActive(1);
         utilisateurRepository.save(ur);
 
         // Create DEFAULT 'CIBLE'
@@ -222,7 +224,8 @@ public class ApiController {
     private ResponseEntity<?> authenticate(@RequestBody BeanAuthentification data){
         // Check
         Utilisateur ur = utilisateurRepository.
-                findByEmailAndPwd(data.getMail().trim(), data.getPwd().trim()).orElse(null);
+                findByEmailAndPwdAndActive(data.getMail().trim(),
+                        data.getPwd().trim(), 1).orElse(null);
         Map<String, Object> stringMap = new HashMap<>();
         stringMap.put("id", ur != null ? ur.getId() : 0);
         stringMap.put("typepieceidentite", ur != null ? ur.getTypePiece().getLibelle() : "");

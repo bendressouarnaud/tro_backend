@@ -9,6 +9,7 @@ public interface UtilisateurRepository extends CrudRepository<Utilisateur, Long>
 
     Optional<Utilisateur> findByEmail(String email);
     Optional<Utilisateur> findByEmailAndPwd(String email, String pwd);
+    Optional<Utilisateur> findByEmailAndPwdAndActive(String email, String pwd, int active);
     List<Utilisateur> findAllByOrderByNomAsc();
 
     // Get History of TODAY :

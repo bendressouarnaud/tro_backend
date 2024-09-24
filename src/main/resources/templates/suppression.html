@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <title>Suppression - Compte</title>
+  <script src="https://code.jquery.com/jquery-3.2.1.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+  <div style="margin-top: 100px">
+    <h5>Suppression de votre compte</h5>
+  </div>
+  <div id="user-login" class="row">
+    <div class="col s12 z-depth-6 card-panel">
+      <form class="login-form" name="login-form" method="POST"
+            action="https://vps-b2e0c1f2.vps.ovh.net/trobackend/supprimer">
+        <div class="row margin">
+          <div class="input-field col s12">
+            <i class="mdi-social-person-outline prefix"></i>
+            <input class="validate" id="username"
+                   name="email" type="text" required>
+            <label for="username" data-error="wrong"
+                   data-success="right" class="center-align">Adresse email</label>
+          </div>
+        </div>
+
+        <div class="row margin">
+          <div class="input-field col s12">
+            <i class="mdi-action-lock-outline prefix"></i> <input
+                  id="user_pass" name="password"
+                  type="password" required>
+            <label for="password">Mot de passe</label>
+          </div>
+        </div>
+        <!--<div class="row">
+          <div class="input-field col s12 m12 l12  login-text">
+            <input type="checkbox" id="remember-me"> <label
+                  for="remember-me">Remember me</label>
+          </div>
+        </div>-->
+        <div class="row">
+          <div class="input-field col s12">
+            <input type="submit"
+                   class="btn waves-effect waves-light col s12"
+                   id="btnsubmit" name="submit" value="Suppression" />
+          </div>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

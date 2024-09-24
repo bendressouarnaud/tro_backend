@@ -35,6 +35,7 @@ public class Utilisateur extends AbstractEntity{
     private String pwd;
     private String fcmToken;
     private String codeInvitation;
+    private Integer active;
 
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "pays_id", foreignKey = @ForeignKey(name = "FK_pays_utilisateur"))

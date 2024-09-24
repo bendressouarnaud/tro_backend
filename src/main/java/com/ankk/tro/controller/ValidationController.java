@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.text.DecimalFormat;
@@ -97,6 +99,48 @@ public class ValidationController {
         // Find RESERVATION :
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.setViewName("confidentialite");
+        return modelAndView;
+    }
+
+
+    @GetMapping("/suppression")
+    public ModelAndView suppression() {
+        // Find RESERVATION :
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("suppression");
+        return modelAndView;
+    }
+
+    @PostMapping("/supprimer")
+    public ModelAndView supprimer(@RequestParam("email") String email,
+        @RequestParam(name="password") String password) {
+        Utilisateur ur = utilisateurRepository.
+                findByEmailAndPwdAndActive(email, password, 1).orElse(null);
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.setViewName("comptesupprime");
+        if(ur != null){
+            ur.setActive(0);
+            utilisateurRepository.save(ur);
+            // Display PAGE :
+            modelAndView.addObject(
+                    "client",
+                    (ur.getNom() + " " +
+                            ur.getPrenom())
+            );
+            modelAndView.addObject(
+                    "info",
+                    "Votre compte a ete supprime");
+        }
+        else{
+            modelAndView.addObject(
+                    "client",
+                    "Les identifiants sont incorrects"
+            );
+            modelAndView.addObject(
+                    "info",
+                    "...");
+        }
+        // Just UPDATE
         return modelAndView;
     }
 
