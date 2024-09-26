@@ -32,6 +32,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.stream.Stream;
 
 @RestController
 @RequiredArgsConstructor
@@ -427,9 +428,51 @@ public class ApiController {
         cible.setTopic(data.getTopic());
         cible.setUtilisateur(ur);
         cibleRepository.save(cible);
+
+        List<PublicationBean> publicationBeans = new ArrayList<>();
+        // Find PUBLICATION that matches this CIBLE
+        List<Publication> listePublicationAvailables =
+                publicationRepository.findAllByDateVoyageGreaterThanEqualAndVilleDepartInAndVilleDestinationIn(
+                        OffsetDateTime.now(Clock.systemUTC()),
+                        Stream.of(cible.getVilleDepart()).toList(),
+                        Stream.of(cible.getVilleDestination()).toList()
+                );
+
+        for(Publication publication : listePublicationAvailables){
+            Utilisateur publisher = publication.getUtilisateur();
+            // Check if this PUBLICATION has been booked by current CUSTOMER
+            Reservation reservation = reservationRepository.
+                    findByUtilisateurAndPublication(ur, publication);
+
+            PublicationBean publicationBean = new PublicationBean();
+            publicationBean.setId(publication.getId());
+            publicationBean.setUserid(publication.getUtilisateur().getId());
+            publicationBean.setVilledepart(publication.getVilleDepart().getId());
+            publicationBean.setVilledestination(publication.getVilleDestination().getId());
+            publicationBean.setDatevoyage(publication.getDateVoyage().
+                    truncatedTo(ChronoUnit.SECONDS).
+                    format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            publicationBean.setDatepublication(publication.getCreationDatetime().
+                    truncatedTo(ChronoUnit.SECONDS).
+                    format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            publicationBean.setReserve(publication.getReserve());
+            publicationBean.setActive(reservation != null ?
+                    (reservation.getReservationState() == ReservationState.TRAITE ? 2 : 1) : 1);
+            publicationBean.setReservereelle(reservation != null ? reservation.getReserve() : 0);
+            publicationBean.setSouscripteur(reservation != null ? publisher.getId() : 0);
+            publicationBean.setMilliseconds(
+                    (int)(publication.getDateVoyage().toEpochSecond() * 1000));
+            publicationBean.setIdentifiant(publication.getIdentifiant());
+            // New Objects :
+            publicationBean.setPrix(publication.getPrix());
+            publicationBean.setDevise(publication.getDevise().getId());
+            publicationBean.setRead(1);
+            publicationBeans.add(publicationBean);
+        }
         Map<String, Object> stringMap = new HashMap<>();
         stringMap.put("idcible", cible.getId());
         stringMap.put("champ", "");
+        stringMap.put("publications", publicationBeans);
         return ResponseEntity.ok(stringMap);
     }
 
