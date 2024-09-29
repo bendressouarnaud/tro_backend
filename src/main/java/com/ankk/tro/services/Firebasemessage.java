@@ -91,7 +91,7 @@ public class Firebasemessage {
                 .putData("sujet", "3")  // Subject
                 .putData("message", chat.getMessage())  // Feed 'Magasin' table :
                 .putData("time",
-                        String.valueOf(chat.getCreationDatetime().toEpochSecond()*1000))  // Feed 'Magasin' table :
+                        String.valueOf(chat.getCreationDatetime().toInstant().toEpochMilli()))  // Feed 'Magasin' table :
                 .putData("idpub", String.valueOf(chat.getPublication().getId()))
                 .putData("iduser", String.valueOf(receiver.getId()))
                 .putData("sender", String.valueOf(sender.getId()))

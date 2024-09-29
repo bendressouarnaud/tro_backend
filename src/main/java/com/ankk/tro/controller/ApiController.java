@@ -296,7 +296,7 @@ public class ApiController {
                 publicationBean.setReservereelle(reservation != null ? reservation.getReserve() : 0);
                 publicationBean.setSouscripteur(reservation != null ? publisher.getId() : 0);
                 publicationBean.setMilliseconds(
-                        (int)(publication.getDateVoyage().toEpochSecond() * 1000));
+                        (int)(publication.getDateVoyage().toInstant().toEpochMilli()));
                 publicationBean.setIdentifiant(publication.getIdentifiant());
                 // New Objects :
                 publicationBean.setPrix(publication.getPrix());
@@ -335,7 +335,7 @@ public class ApiController {
                 publicationBean.setReservereelle(publication.getReserve());
                 publicationBean.setSouscripteur(0);
                 publicationBean.setMilliseconds(
-                        (int)(publication.getDateVoyage().toEpochSecond() * 1000));
+                        (int)(publication.getDateVoyage().toInstant().toEpochMilli()));
                 publicationBean.setIdentifiant(publication.getIdentifiant());
                 // New Objects :
                 publicationBean.setPrix(publication.getPrix());
@@ -361,7 +361,7 @@ public class ApiController {
                     souscriptionBean.setIduser(suscriber.getId());
                     souscriptionBean.setReserve(reservation.getReserve());
                     souscriptionBean.setMillisecondes(
-                            reservation.getCreationDatetime().toEpochSecond());
+                            reservation.getCreationDatetime().toInstant().toEpochMilli());
                     souscriptionBean.setStatut(
                         reservation.getReservationState() == ReservationState.TRAITE ? 1 : 0);
                     // Feed :
