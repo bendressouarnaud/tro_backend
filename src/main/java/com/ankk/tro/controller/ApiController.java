@@ -74,8 +74,11 @@ public class ApiController {
         /*String getHourOffset = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
                 format(DateTimeFormatter.ISO_OFFSET_DATE_TIME).split("T")[1];
         String offSet = getHourOffset.substring(8);
-
         System.out.println("offSet : "+ offSet);*/
+
+        /*String getHourOffset = OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS).
+                format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        System.out.println("offSet : "+ getHourOffset);*/
 
         try {
             FirebaseOptions options = new FirebaseOptions.Builder()
@@ -461,7 +464,7 @@ public class ApiController {
             publicationBean.setReservereelle(reservation != null ? reservation.getReserve() : 0);
             publicationBean.setSouscripteur(reservation != null ? publisher.getId() : 0);
             publicationBean.setMilliseconds(
-                    (int)(publication.getDateVoyage().toEpochSecond() * 1000));
+                    (int)(publication.getDateVoyage().toInstant().toEpochMilli()));
             publicationBean.setIdentifiant(publication.getIdentifiant());
             // New Objects :
             publicationBean.setPrix(publication.getPrix());
