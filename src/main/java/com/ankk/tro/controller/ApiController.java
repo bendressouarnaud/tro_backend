@@ -277,7 +277,7 @@ public class ApiController {
                 Utilisateur publisher = publication.getUtilisateur();
                 // Check if this PUBLICATION has been booked by current CUSTOMER
                 Reservation reservation = reservationRepository.
-                        findByUtilisateurAndPublication(ur, publication);
+                        findByUtilisateurAndPublicationAndReservationState(ur, publication, ReservationState.EFFECTUE);
 
                 PublicationBean publicationBean = new PublicationBean();
                 publicationBean.setId(publication.getId());
