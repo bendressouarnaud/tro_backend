@@ -30,6 +30,7 @@ public class Publication extends AbstractEntity{
     private Integer reserve;
     private Integer prix;
     private String identifiant;
+    private boolean active;
 
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "ville_depart_id", foreignKey = @ForeignKey(name = "FK_ville_depart_publication"))

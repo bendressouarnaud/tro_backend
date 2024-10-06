@@ -10,15 +10,18 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class Firebasemessage {
 
     @Async
-    public void notifySuscriberAboutCible(List<String> tokens, Publication publication, String destination){
+    public void notifySuscriberAboutCible(List<String> tokens, Publication publication,
+        String destination, boolean updatedPublication){
         Notification builder = new Notification(publication.getIdentifiant(),
-                (destination + "   Réserve : "+ String.valueOf(publication.getReserve()) + " Kg"));
+                !updatedPublication ?
+                        (destination + "   Réserve : "+ String.valueOf(publication.getReserve()) + " Kg")
+                :
+                "Annonce modifiée");
         List<Message> listeMessage = new ArrayList<>();
         try {
             for(String token : tokens){
@@ -129,7 +132,7 @@ public class Firebasemessage {
         try {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
-            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
+            System.out.println("notifySuscriberAboutReservationValidation : "+e.toString());
         }
     }
 
@@ -151,7 +154,7 @@ public class Firebasemessage {
         try {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
-            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
+            System.out.println("notifySuscriberAboutDelivery : "+e.toString());
         }
     }
 
@@ -161,10 +164,6 @@ public class Firebasemessage {
             Utilisateur sender, String identifiant
     )
     {
-        /*Notification builder = new Notification(
-                publication.getIdentifiant(),
-                "Colis remis au destinataire");*/
-        //System.out.println("Sender ID : " + String.valueOf(sender.getId()));
         Message me = Message.builder()
                 //.setNotification(builder)
                 .setToken(sender.getFcmToken())
@@ -174,7 +173,73 @@ public class Firebasemessage {
         try {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
-            System.out.println("notifyOwnerAboutNewReservation : "+e.toString());
+            System.out.println("notifySenderAboutChatReceipt : "+e.toString());
+        }
+    }
+
+    @Async
+    public void notifySuscriberAboutPublicationUpdate(
+            Utilisateur suscriber, Publication publication, int nouvellereservation
+    )
+    {
+        Notification builder = new Notification(
+                publication.getIdentifiant(),
+                "Votre réserve a été modifiée !");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(suscriber.getFcmToken())
+                .putData("sujet", "7")  // Subject
+                .putData("idpub", String.valueOf(publication.getId()))
+                .putData("poids", String.valueOf(nouvellereservation))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifySuscriberAboutPublicationUpdate : "+e.toString());
+        }
+    }
+
+
+    @Async
+    public void notifySuscriberAboutPublicationCancellation(
+            String suscriberToken, Publication publication
+    )
+    {
+        Notification builder = new Notification(
+                publication.getIdentifiant(),
+                "Réservation annulée par l'émetteur !");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(suscriberToken)
+                .putData("sujet", "8")  // Subject
+                .putData("idpub", String.valueOf(publication.getId()))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifySuscriberAboutPublicationCancellation : "+e.toString());
+        }
+    }
+
+    @Async
+    public void notifyOwnerAboutSubscriptionCancellation(
+            String ownerToken, Publication publication, long idSuscriber
+    )
+    {
+        Notification builder = new Notification(
+                publication.getIdentifiant(),
+                "Commande résiliée par le souscripteur !");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(ownerToken)
+                .putData("sujet", "9")  // Subject
+                .putData("idpub", String.valueOf(publication.getId()))
+                .putData("iduser", String.valueOf(idSuscriber))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifySuscriberAboutPublicationCancellation : "+e.toString());
         }
     }
 }

@@ -54,6 +54,8 @@ dependencies {
 	// JSON
 	implementation 'org.json:json:20240303'
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	// MAIL
+	implementation 'org.springframework.boot:spring-boot-starter-mail:3.3.4'
 
 	compileOnly "org.projectlombok:lombok:${lombokVersion}"
 	annotationProcessor "org.projectlombok:lombok:${lombokVersion}"

@@ -40,4 +40,7 @@ public class Reservation extends AbstractEntity{
 
     @OneToMany(fetch = LAZY, mappedBy = "reservation")
     private Collection<ApiRequest> apiRequests;
+
+    @OneToMany(fetch = LAZY, mappedBy = "reservation")
+    private Collection<Remboursement> remboursements;
 }

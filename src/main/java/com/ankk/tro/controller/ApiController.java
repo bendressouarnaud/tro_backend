@@ -4,6 +4,7 @@ import com.ankk.tro.enums.ReservationState;
 import com.ankk.tro.httpbean.*;
 import com.ankk.tro.model.*;
 import com.ankk.tro.repositories.*;
+import com.ankk.tro.services.EmailService;
 import com.ankk.tro.services.Firebasemessage;
 import com.ankk.tro.services.Messervices;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -49,9 +51,11 @@ public class ApiController {
     private final ApiRequestRepository apiRequestRepository;
     private final CibleRepository cibleRepository;
     private final ChatRepository chatRepository;
+    private final RemboursementRepository remboursementRepository;
     private final NotificationsParamRepository notificationsParamRepository;
     private final Messervices messervices;
     private final Firebasemessage firebasemessage;
+    private final EmailService emailService;
 
     @Value("${app.firebase-config}")
     private String firebaseConfig;
@@ -212,6 +216,10 @@ public class ApiController {
             cible.setVilleDestination(villeResidence);
             cible.setTopic("");
             cibleRepository.save(cible);
+
+            // Send MAIL :
+            emailService.mailCreation("Identifiants de connexion",
+                    ur.getEmail(), ur.getPwd());
         }
 
         //
@@ -481,12 +489,81 @@ public class ApiController {
 
 
     @CrossOrigin("*")
+    @PostMapping(path = "/cancelsuscription")
+    public ResponseEntity<?> cancelsuscription(
+            @RequestBody DeliveryRequest data,
+            HttpServletRequest request
+    )
+    {
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        Utilisateur utilisateur = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublicationAndReservationState(
+                        utilisateur, publication, ReservationState.EFFECTUE
+                );
+        if(reservation != null){
+            // Cancel it :
+            reservation.setReservationState(ReservationState.RESILIE);
+            reservationRepository.save(reservation);
+            // Notify OWNER :
+            firebasemessage.notifyOwnerAboutSubscriptionCancellation(
+                    publication.getUtilisateur().getFcmToken(), publication, utilisateur.getId());
+            return ResponseEntity.ok(Optional.empty());
+        }
+        else return ResponseEntity.status(HttpStatus.FORBIDDEN).body("");
+    }
+
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/canceltravel")
+    public ResponseEntity<?> canceltravel(
+            @RequestBody DeliveryRequest data,
+            HttpServletRequest request
+    )
+    {
+        //
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        if(publication != null){
+            publication.setActive(false);
+            publicationRepository.save(publication);
+            // Pick all SOUSCRIPTION :
+            List<Reservation> listeReservation = reservationRepository.
+                    findAllByPublicationAndReservationState(publication, ReservationState.EFFECTUE);
+            for(Reservation reservation : listeReservation){
+                reservation.setReservationState(ReservationState.ANNULE);
+                reservationRepository.save(reservation);
+                Utilisateur suscriber = reservation.getUtilisateur();
+                if(reservation.getMontant() > 0) {
+                    // New LINE for REIMBURSEMENT
+                    Remboursement remboursement = new Remboursement();
+                    remboursement.setMontant(reservation.getMontant());
+                    remboursement.setReservation(reservation);
+                    remboursementRepository.save(remboursement);
+                    // Notify BY MAIL :
+                    String amountToRepay = NumberFormat.getInstance(Locale.FRENCH).format(
+                            reservation.getMontant()
+                    );
+                    emailService.notificationRemboursement("Remboursement paiement", suscriber,
+                            amountToRepay, publication.getIdentifiant());
+                }
+                // Notify SUSCRIBER :
+                firebasemessage.notifySuscriberAboutPublicationCancellation(suscriber.getFcmToken(),
+                        publication);
+            }
+            return ResponseEntity.ok(Optional.empty());
+        }
+        else return ResponseEntity.status(HttpStatus.FORBIDDEN).body("");
+    }
+
+
+    @CrossOrigin("*")
     @PostMapping(path = "/managetravel")
     public ResponseEntity<?> managetravel(
             @RequestBody TravelRequest data,
             HttpServletRequest request
     )
     {
+        boolean updatedPublication = false;
         // Process COUNTRY DEPART:
         Pays paysDepart = paysRepository.findByAbreviation(data.getAbrevpaysdepart()).orElseGet( () -> {
             Pays ps = new Pays();
@@ -536,9 +613,52 @@ public class ApiController {
                     return vl;
                 });
         // Work on Travel Request :
+        List<RefreshReservationBean> listeRefresh = new ArrayList<>();
         Publication publication = publicationRepository.findById(data.getId()).orElse(null);
         if(publication == null){
             publication = new Publication();
+            publication.setActive(true);
+        }
+        else{
+            updatedPublication = true;
+            // Not NULL, check USERS who already suscribed and adjust their booking :
+            if(data.getReserve() != publication.getReserve()) {
+                List<Reservation> listeReservation = reservationRepository.
+                        findAllByPublicationAndReservationState(publication, ReservationState.EFFECTUE);
+                for (Reservation reservation : listeReservation) {
+                    int newReservation = ( data.getReserve() * reservation.getReserve() ) / publication.getReserve();
+                    // Adjust Price :
+                    int newPriceToPay = newReservation * publication.getPrix();
+                    if(newPriceToPay < reservation.getMontant()){
+                        // Track that :
+                        Remboursement remboursement = new Remboursement();
+                        int montantRembourse = reservation.getMontant() - newPriceToPay;
+                        remboursement.setMontant(montantRembourse);
+                        remboursement.setReservation(reservation);
+                        remboursementRepository.save(remboursement);
+                        // Pay the difference BACK to SUSCRIBERS
+                        reservation.setMontant(newPriceToPay);
+                        // Send MAIL :
+                        String amountToRepay = NumberFormat.getInstance(Locale.FRENCH).format(montantRembourse);
+                        Utilisateur cUr = reservation.getUtilisateur();
+                        emailService.notificationRemboursement("Remboursement paiement", cUr, amountToRepay,
+                                publication.getIdentifiant());
+                    }
+                    // Feed :
+                    RefreshReservationBean refreshReservationBean = new RefreshReservationBean();
+                    refreshReservationBean.setIdpub(reservation.getPublication().getId());
+                    refreshReservationBean.setIduser(reservation.getUtilisateur().getId());
+                    refreshReservationBean.setReserve(newReservation);
+                    listeRefresh.add(refreshReservationBean);
+                    reservation.setReserve(newReservation);
+                    // Persist :
+                    reservationRepository.save(reservation);
+
+                    // Notify USER who suscribed in order his QUANTITY be updated automatically :
+                    Utilisateur suscriber = reservation.getUtilisateur();
+                    firebasemessage.notifySuscriberAboutPublicationUpdate(suscriber, publication, newReservation);
+                }
+            }
         }
         // Get USER
         Utilisateur utilisateur = utilisateurRepository.findById(data.getUser()).orElse(null);
@@ -601,7 +721,7 @@ public class ApiController {
                     ).toList();
             if(!lesCibles.isEmpty()){
                 firebasemessage.notifySuscriberAboutCible(lesCibles,
-                        publication, departDestination);
+                        publication, departDestination, updatedPublication);
             }
         }
 
@@ -611,6 +731,7 @@ public class ApiController {
         stringMap.put("date", publication.getCreationDatetime().truncatedTo(ChronoUnit.SECONDS).
                 format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
         stringMap.put("identifiant", publication.getIdentifiant());
+        stringMap.put("reserveBean", listeRefresh);
         return ResponseEntity.ok(stringMap);
     }
 

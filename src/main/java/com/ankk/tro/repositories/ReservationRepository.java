@@ -14,4 +14,6 @@ public interface ReservationRepository extends CrudRepository<Reservation, Long>
     Reservation findByUtilisateurAndPublicationAndReservationState(Utilisateur user, Publication publication,
                                                                    ReservationState reservationState);
     List<Reservation> findAllByPublication(Publication publication);
+    List<Reservation> findAllByPublicationAndReservationState(Publication publication,
+                                                              ReservationState reservationState);
 }
