@@ -13,7 +13,6 @@ public class Messervices {
 
     public String generatePublicationId(String user, long id){
         OffsetDateTime offsetDateTime = OffsetDateTime.now(Clock.systemUTC());
-        //String.valueOf(offsetDateTime.getYear()).substring(2,2);
         String[] tamponName = user.split(" ");
         StringBuilder finalName = new StringBuilder();
         finalName.append(String.valueOf(offsetDateTime.getYear()).substring(2,4));

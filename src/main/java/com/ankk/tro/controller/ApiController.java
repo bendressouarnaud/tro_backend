@@ -41,6 +41,7 @@ import java.util.stream.Stream;
 public class ApiController {
 
     // Attribute :
+    private final BonusRepository bonusRepository;
     private final UtilisateurRepository utilisateurRepository;
     private final PaysRepository paysRepository;
     private final DeviseRepository deviseRepository;
@@ -50,6 +51,7 @@ public class ApiController {
     private final ReservationRepository reservationRepository;
     private final ApiRequestRepository apiRequestRepository;
     private final CibleRepository cibleRepository;
+    private final CodeFiliationRepository codeFiliationRepository;
     private final ChatRepository chatRepository;
     private final RemboursementRepository remboursementRepository;
     private final NotificationsParamRepository notificationsParamRepository;
@@ -135,6 +137,37 @@ public class ApiController {
 
 
     @CrossOrigin("*")
+    @PostMapping(path = "/refreshfiliation")
+    public ResponseEntity<?> refreshfiliation(
+            @RequestBody RefreshRequest data,
+            HttpServletRequest request
+    )
+    {
+        Utilisateur user = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        String codeParrainage= "";
+        if(user != null){
+            // Create new CODE :
+            CodeFiliation codeFiliation = new CodeFiliation();
+            codeParrainage = messervices.generatePublicationId(
+                    (user.getNom().trim() + " " + user.getPrenom().trim()), user.getId());
+            codeFiliation.setCode(codeParrainage);
+            codeFiliation.setUtilisateur(user);
+            codeFiliationRepository.save(codeFiliation);
+
+            // Get BONUS :
+            List<Bonus> lesBonus = bonusRepository.findByUtilisateur(user);
+            double bonus = lesBonus.isEmpty() ? 0 :
+                    lesBonus.stream().max(Comparator.comparing(Bonus::getId)).get().getMontant();
+            Map<String, Object> stringMap = new HashMap<>();
+            stringMap.put("parrainage", codeParrainage);
+            stringMap.put("bonus", bonus);
+            return ResponseEntity.ok(stringMap);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+
+    @CrossOrigin("*")
     @PostMapping(path = "/manageuser")
     public ResponseEntity<?> manageuser(
             @RequestBody UserCreationRequest user,
@@ -147,6 +180,17 @@ public class ApiController {
         if(ur == null && user.getIduser() == 0){
             newUser = true;
             ur = new Utilisateur();
+            ur.setActive(1);
+            // Check if exists :
+            if(!user.getCodeinvitation().isEmpty()){
+                if(checkCodeParrainageExistence(user.getCodeinvitation())){
+                    ur.setCodeInvitation(user.getCodeinvitation());
+                }
+                else{
+                    return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+                }
+            }
+            else ur.setCodeInvitation("");
             ur.setPwd(messervices.generatePwd(
                     (user.getNom().trim() + user.getPrenom().trim())));
         }
@@ -203,11 +247,11 @@ public class ApiController {
             ur.setNotificationsParam(notificationsParam);
         }
         //
-        ur.setActive(1);
         utilisateurRepository.save(ur);
 
         // Create DEFAULT 'CIBLE'
         Cible cible = new Cible();
+        String codeParrainage = "";
         if(newUser) {
             cible.setUtilisateur(ur);
             cible.setPaysDepart(pays);
@@ -217,9 +261,17 @@ public class ApiController {
             cible.setTopic("");
             cibleRepository.save(cible);
 
+            // Create first CODE :
+            CodeFiliation codeFiliation = new CodeFiliation();
+            codeParrainage = messervices.generatePublicationId(
+                    (user.getNom().trim() + " " + user.getPrenom().trim()), ur.getId());
+            codeFiliation.setCode(codeParrainage);
+            codeFiliation.setUtilisateur(ur);
+            codeFiliationRepository.save(codeFiliation);
+
             // Send MAIL :
-            emailService.mailCreation("Identifiants de connexion",
-                    ur.getEmail(), ur.getPwd());
+            /*emailService.mailCreation("Identifiants de connexion",
+                    ur.getEmail(), ur.getPwd());*/
         }
 
         //
@@ -227,6 +279,7 @@ public class ApiController {
         stringMap.put("userid", ur.getId());
         stringMap.put("typepiece", user.getTypepieceidentite());
         stringMap.put("cibleid", newUser ? cible.getId() : 0);
+        stringMap.put("codeparrainage", codeParrainage);
         return ResponseEntity.ok(stringMap);
     }
 
@@ -382,6 +435,21 @@ public class ApiController {
         // New Objects
         stringMap.put("publicationowner", userBeans);
         stringMap.put("subscriptions", souscriptionsBeans);
+
+        // Look for his PARRAINAGE CODE :
+        String codeParrainage = "";
+        double leBonus = 0;
+        if(ur != null) {
+            CodeFiliation codeFiliation = ur.getCodeFiliations().stream().max(
+                    Comparator.comparing(CodeFiliation::getId)).get();
+            codeParrainage = codeFiliation.getCode();
+            Bonus bonus = ur.getBonuses().stream().max(
+                    Comparator.comparing(Bonus::getId)).get();
+            leBonus = bonus.getMontant();
+        }
+        stringMap.put("codeparrainage", codeParrainage);
+        stringMap.put("bonus", leBonus);
+
         return ur != null ?
             ResponseEntity.ok(stringMap) :
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -693,7 +761,7 @@ public class ApiController {
         publication.setDevise(devise);
         publication.setPrix(data.getPrix());
         publication.setIdentifiant(messervices.generatePublicationId(
-                (utilisateur.getNom() + utilisateur.getPrenom()), utilisateur.getId()));
+                (utilisateur.getNom() + " " + utilisateur.getPrenom()), utilisateur.getId()));
         publication.setDateVoyage(
                 OffsetDateTime.of(
                         LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
@@ -963,5 +1031,11 @@ public class ApiController {
             }
         }
         return ResponseEntity.ok(Optional.empty());
+    }
+
+    //
+    private boolean checkCodeParrainageExistence(String codeparrainage){
+        Optional<CodeFiliation> cFiliation = codeFiliationRepository.findByCode(codeparrainage);
+        return cFiliation.isPresent();
     }
 }
