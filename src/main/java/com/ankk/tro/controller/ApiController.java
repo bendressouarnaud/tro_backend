@@ -70,6 +70,13 @@ public class ApiController {
     @Value("${backend.web.url}")
     private String backendWebUrl;
 
+    @Value("${owner.payment.percentagewithoutgodfather}")
+    private double ownerPaymentWithoutGodfather;
+    @Value("${owner.payment.percentagewithgodfather}")
+    private double ownerPaymentWithGodfather;
+    @Value("${godfather.payment.percentage}")
+    private double godfatherPayment;
+
 
 
 
@@ -203,7 +210,6 @@ public class ApiController {
         ur.setContact(user.getContact().trim());
         ur.setEmail(user.getEmail());
         ur.setAdresse(user.getAdresse());
-        ur.setCodeInvitation("");
         ur.setFcmToken(user.getToken());
         // Process PIECE :
         TypePiece typePiece = typePieceRepository.findByLibelle(user.getTypepieceidentite());
@@ -956,6 +962,7 @@ public class ApiController {
         // New LINE :
         Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
         Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        Utilisateur owner = publication.getUtilisateur();
         //
         Reservation reservation = reservationRepository.
                 findByUtilisateurAndPublication(suscriber, publication);
@@ -964,6 +971,63 @@ public class ApiController {
         reservationRepository.save(reservation);
         // Notify to SUSCRIBER :
         firebasemessage.notifySuscriberAboutDelivery(suscriber, publication);
+        // Notify BY EMAIL too :
+        emailService.notificationLivraison(suscriber.getEmail(), (owner.getNom()+" "+owner.getPrenom()),
+                String.valueOf(publication.getId()));
+
+        // Compute :
+        if(publication.getPrix() > 0) {
+            if (!suscriber.getCodeInvitation().isEmpty()) {
+                // Look for OWNER GODFATHER :
+                codeFiliationRepository.findByCode(suscriber.getCodeInvitation())
+                        .ifPresent(
+                                d -> {
+                                    // Create new line in BONUS :
+                                    Bonus bonus = new Bonus();
+                                    bonus.setMontant((double) publication.getPrix() * godfatherPayment);
+                                    bonus.setUtilisateur(d.getUtilisateur());
+                                    bonusRepository.save(bonus);
+                                    // SUM UP bonuses
+                                    List<Bonus> lesBonus =
+                                            bonusRepository.findByUtilisateur(d.getUtilisateur());
+                                    double totBonus = lesBonus.stream().mapToDouble(Bonus::getMontant).sum();
+                                    // Notify GODFATHER :
+                                    firebasemessage.notifyUserAboutBonus(d.getUtilisateur().getFcmToken(),
+                                            publication.getIdentifiant(),
+                                            totBonus);
+
+                                    // Payment to OWNER
+                                    Bonus bonusOwner = new Bonus();
+                                    bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithGodfather);
+                                    bonusOwner.setUtilisateur(owner);
+                                    bonusRepository.save(bonusOwner);
+                                    // SUM UP bonuses
+                                    List<Bonus> lesBonusOwner =
+                                            bonusRepository.findByUtilisateur(owner);
+                                    double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
+                                    // Notify OWNER :
+                                    firebasemessage.notifyUserAboutBonus(owner.getFcmToken(),
+                                            publication.getIdentifiant(),
+                                            totBonusOwner);
+                                }
+                        );
+            } else {
+                // Payment to OWNER
+                Bonus bonusOwner = new Bonus();
+                bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithoutGodfather);
+                bonusOwner.setUtilisateur(owner);
+                bonusRepository.save(bonusOwner);
+                // SUM UP bonuses
+                List<Bonus> lesBonusOwner =
+                        bonusRepository.findByUtilisateur(owner);
+                double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
+                // Notify OWNER :
+                firebasemessage.notifyUserAboutBonus(owner.getFcmToken(),
+                        publication.getIdentifiant(),
+                        totBonusOwner);
+            }
+        }
+
         return ResponseEntity.ok(Optional.empty());
     }
 

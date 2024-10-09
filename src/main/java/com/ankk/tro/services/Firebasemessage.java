@@ -242,4 +242,25 @@ public class Firebasemessage {
             System.out.println("notifySuscriberAboutPublicationCancellation : "+e.toString());
         }
     }
+
+    @Async
+    public void notifyUserAboutBonus(
+            String userToken, String publicationId, double montant
+    )
+    {
+        Notification builder = new Notification(
+                publicationId,
+                "Nouveau BONUS");
+        Message me = Message.builder()
+                .setNotification(builder)
+                .setToken(userToken)
+                .putData("sujet", "10")  // Subject
+                .putData("montant", String.valueOf(montant))
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifyUserAboutBonus : "+e.toString());
+        }
+    }
 }

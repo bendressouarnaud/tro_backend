@@ -64,4 +64,27 @@ public class EmailService {
             //
         }
     }
+
+    @Async
+    public void notificationLivraison(String emailSouscripteur,
+                                          String emetteur, String idPublication){
+        MimeMessage mimeMessage = emailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true,
+                    "utf-8");
+            StringBuilder contenu = new StringBuilder();
+            contenu.append("<h2> Informations LIVRAISON </h2>");
+            contenu.append("<h3> La livraison de votre colis a &eacute;t&eacute; effectu&eacute; par ");
+            contenu.append(emetteur);
+            contenu.append("</h3>");
+            helper.setText(String.valueOf(contenu), true);
+            helper.setTo(emailSouscripteur);
+            helper.setSubject("Livraison colis "+idPublication);
+            helper.setBcc("ngbandamakonan@gmail.com");
+            helper.setFrom(expediteur);
+            emailSender.send(mimeMessage);
+        } catch (Exception exc) {
+            //
+        }
+    }
 }
