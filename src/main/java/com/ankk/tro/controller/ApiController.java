@@ -276,8 +276,8 @@ public class ApiController {
             codeFiliationRepository.save(codeFiliation);
 
             // Send MAIL :
-            /*emailService.mailCreation("Identifiants de connexion",
-                    ur.getEmail(), ur.getPwd());*/
+            emailService.mailCreation("Identifiants de connexion",
+                    ur.getEmail(), ur.getPwd());
         }
 
         //
@@ -449,9 +449,12 @@ public class ApiController {
             CodeFiliation codeFiliation = ur.getCodeFiliations().stream().max(
                     Comparator.comparing(CodeFiliation::getId)).get();
             codeParrainage = codeFiliation.getCode();
-            Bonus bonus = ur.getBonuses().stream().max(
-                    Comparator.comparing(Bonus::getId)).get();
-            leBonus = bonus.getMontant();
+
+            Optional<Bonus> bonus = ur.getBonuses().stream().max(
+                    Comparator.comparing(Bonus::getId));
+            if(bonus.isPresent()){
+                leBonus = bonus.get().getMontant();
+            }
         }
         stringMap.put("codeparrainage", codeParrainage);
         stringMap.put("bonus", leBonus);
