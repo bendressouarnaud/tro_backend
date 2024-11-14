@@ -56,6 +56,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	// MAIL
 	implementation 'org.springframework.boot:spring-boot-starter-mail:3.3.4'
+	// STREAM CHAT
+	implementation 'io.getstream:stream-chat-java:1.26.2'
 
 	compileOnly "org.projectlombok:lombok:${lombokVersion}"
 	annotationProcessor "org.projectlombok:lombok:${lombokVersion}"

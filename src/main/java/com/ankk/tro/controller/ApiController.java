@@ -10,6 +10,8 @@ import com.ankk.tro.services.Messervices;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import io.getstream.chat.java.models.User;
+import io.getstream.chat.java.services.framework.DefaultClient;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +79,11 @@ public class ApiController {
     @Value("${godfather.payment.percentage}")
     private double godfatherPayment;
 
+    @Value("${io.getstream.chat.secretKey}")
+    private String STREAM_SECRET;
+    @Value("${io.getstream.chat.apiKey}")
+    private String STREAM_KEY;
+
 
 
 
@@ -105,6 +112,21 @@ public class ApiController {
             }
         } catch (IOException e) {
             System.out.println("Create FirebaseApp Error : " + e.getMessage());
+        }
+
+        try{
+            // Set STREAM CONFIGURATION
+            var properties = new Properties();
+            properties.put(DefaultClient.API_KEY_PROP_NAME, STREAM_KEY);
+            properties.put(DefaultClient.API_SECRET_PROP_NAME, STREAM_SECRET);
+            var client = new DefaultClient(properties);
+            DefaultClient.setInstance(client);
+
+            var token = User.createToken("john", null, null);
+            System.out.println("John : " + token);
+        }
+        catch (Exception e) {
+            System.out.println("STREAM CHAT Error : " + e.getMessage());
         }
     }
 
