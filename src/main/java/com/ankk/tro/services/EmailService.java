@@ -1,6 +1,9 @@
 package com.ankk.tro.services;
 
 import com.ankk.tro.model.Utilisateur;
+import io.getstream.chat.java.models.Channel;
+import io.getstream.chat.java.models.User;
+import io.getstream.chat.java.services.framework.Client;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,6 +11,9 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -85,6 +91,46 @@ public class EmailService {
             emailSender.send(mimeMessage);
         } catch (Exception exc) {
             //
+        }
+    }
+
+    @Async
+    public void syncUserId(String id, String name) {
+        try {
+            var usersUpsertRequest = User.upsert();
+            usersUpsertRequest.user(User.UserRequestObject.builder().id(id).name(name).build());
+            var response = usersUpsertRequest.request();
+            System.out.println("response : "+response.toString());
+
+            // Register DEVICE :
+
+        }
+        catch (Exception exc) {
+            System.out.println("syncUserId EXCEPTION : "+exc.toString());
+        }
+    }
+
+    //
+    @Async
+    public void addMembersToChannels(List<Utilisateur> users, String channel) {
+        try {
+            var gandalf =
+                    User.UserRequestObject.builder()
+                            .id(users.get(0).getId().toString())
+                            .name(users.get(0).getNom())
+                            .build();
+            Channel.getOrCreate("messaging", channel)
+                    .data(Channel.ChannelRequestObject.builder()
+                        .createdBy(gandalf)
+                        .build()
+                    )
+                    .request();
+            for(Utilisateur user : users) {
+                Channel.update("messaging", channel).addMember(user.getId().toString()).hideHistory(true).request();
+            }
+        }
+        catch (Exception exc) {
+            System.out.println("addMembersToChannels EXCEPTION : "+exc.toString());
         }
     }
 }

@@ -9,6 +9,7 @@ import com.ankk.tro.repositories.PaysRepository;
 import com.ankk.tro.repositories.PublicationRepository;
 import com.ankk.tro.repositories.ReservationRepository;
 import com.ankk.tro.repositories.UtilisateurRepository;
+import com.ankk.tro.services.EmailService;
 import com.ankk.tro.services.Firebasemessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -25,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Controller
 @RequiredArgsConstructor
@@ -36,6 +38,7 @@ public class ValidationController {
     private final UtilisateurRepository utilisateurRepository;
     private final PaysRepository paysRepository;
     private final Firebasemessage firebasemessage;
+    private final EmailService emailService;
 
 
     // M E T H O D S
@@ -82,9 +85,23 @@ public class ValidationController {
 
         // Notify the publication's OWNER
         Pays paysSuscriber = paysRepository.findById(utilisateur.getPays().getId()).orElse(null);
+
+        String channel_ID = reservation.getId().toString() +
+                utilisateur.getId().toString() +
+                owner.getId().toString();
+
+        // Add members :
+        emailService.addMembersToChannels(Stream.of(utilisateur, owner).toList(), channel_ID);
+
+        // Notify PUBLICATION's curent suscriber :
+        firebasemessage.notifySuscriberAboutPublicationChannelID(utilisateur.getFcmToken(),
+                reservation.getPublication().getId().toString(),
+                channel_ID);
+
+        // Notify PUBLICATION's owner :
         firebasemessage.notifyOwnerAboutNewReservation(owner,utilisateur,reservation.getPublication(),
                 paysSuscriber,
-                reservation.getReserve());
+                reservation.getReserve(), channel_ID);
 
         // Notify SUSCRIBER that PAYMENT has been DONE :
         firebasemessage.notifySuscriberAboutReservationValidation(

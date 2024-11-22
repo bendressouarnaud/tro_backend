@@ -34,8 +34,10 @@ public class Utilisateur extends AbstractEntity{
     private String adresse;
     private String pwd;
     private String fcmToken;
+    private String streamChatToken;
     private String codeInvitation;
     private Integer active;
+    private Integer validateAccount;
 
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "pays_id", foreignKey = @ForeignKey(name = "FK_pays_utilisateur"))

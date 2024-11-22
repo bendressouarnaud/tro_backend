@@ -14,6 +14,9 @@ import java.util.List;
 @Service
 public class Firebasemessage {
 
+    // ATTRIBUTES :
+    String typeMessage = "fcm";
+
     @Async
     public void notifySuscriberAboutCible(List<String> tokens, Publication publication,
         String destination, boolean updatedPublication){
@@ -28,6 +31,7 @@ public class Firebasemessage {
                 Message me = Message.builder()
                         .setNotification(builder)
                         .setToken(token)
+                        .putData("type", typeMessage)
                         .putData("sujet", "1")  // Subject
                         .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
                         .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
@@ -46,7 +50,7 @@ public class Firebasemessage {
                 //FirebaseMessaging.getInstance().sendAll(listeMessage);
             }
         } catch (FirebaseMessagingException e) {
-            System.out.println("notifySuscriberAboutCible : "+e.toString());
+            System.out.println("notifySuscriberAboutCible : "+ e.getMessage());
         }
     }
 
@@ -56,13 +60,15 @@ public class Firebasemessage {
     public void notifyOwnerAboutNewReservation(Utilisateur owner,
                                                Utilisateur suscriber,
                                                Publication publication,
-                                               Pays pays, int reserve)
+                                               Pays pays, int reserve,
+                                               String channelid)
     {
         Notification builder = new Notification(publication.getIdentifiant(),
                 ("Souscripteur : " + suscriber.getNom() + " " + suscriber.getPrenom()));
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(owner.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "2")  // Subject
                 .putData("id", String.valueOf(suscriber.getId()))  // Feed 'Magasin' table :
                 .putData("nationalite", pays.getAbreviation())  // Feed 'Magasin' table :
@@ -71,6 +77,7 @@ public class Firebasemessage {
                 .putData("adresse", suscriber.getAdresse())
                 .putData("idpub", String.valueOf(publication.getId()))
                 .putData("reserve", String.valueOf(reserve))
+                .putData("channelid", channelid)
                 .build();
         try {
             FirebaseMessaging.getInstance().send(me);
@@ -91,6 +98,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(receiver.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "3")  // Subject
                 .putData("message", chat.getMessage())  // Feed 'Magasin' table :
                 .putData("time",
@@ -120,6 +128,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(suscriber.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "4")  // Subject
                 .putData("id", String.valueOf(owner.getId()))
                 .putData("nom", owner.getNom())
@@ -148,6 +157,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(suscriber.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "5")  // Subject
                 .putData("idpub", String.valueOf(publication.getId()))
                 .build();
@@ -167,6 +177,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 //.setNotification(builder)
                 .setToken(sender.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "6")  // Subject
                 .putData("identifiant", identifiant)
                 .build();
@@ -188,6 +199,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(suscriber.getFcmToken())
+                .putData("type", typeMessage)
                 .putData("sujet", "7")  // Subject
                 .putData("idpub", String.valueOf(publication.getId()))
                 .putData("poids", String.valueOf(nouvellereservation))
@@ -211,6 +223,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(suscriberToken)
+                .putData("type", typeMessage)
                 .putData("sujet", "8")  // Subject
                 .putData("idpub", String.valueOf(publication.getId()))
                 .build();
@@ -232,6 +245,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(ownerToken)
+                .putData("type", typeMessage)
                 .putData("sujet", "9")  // Subject
                 .putData("idpub", String.valueOf(publication.getId()))
                 .putData("iduser", String.valueOf(idSuscriber))
@@ -254,6 +268,7 @@ public class Firebasemessage {
         Message me = Message.builder()
                 .setNotification(builder)
                 .setToken(userToken)
+                .putData("type", typeMessage)
                 .putData("sujet", "10")  // Subject
                 .putData("montant", String.valueOf(montant))
                 .build();
@@ -261,6 +276,26 @@ public class Firebasemessage {
             FirebaseMessaging.getInstance().send(me);
         } catch (FirebaseMessagingException e) {
             System.out.println("notifyUserAboutBonus : "+e.toString());
+        }
+    }
+
+    @Async
+    public void notifySuscriberAboutPublicationChannelID(
+            String userToken, String publicationId, String channelID
+    )
+    {
+        Message me = Message.builder()
+                //.setNotification(builder)
+                .setToken(userToken)
+                .putData("type", typeMessage)
+                .putData("sujet", "11")  // Subject
+                .putData("idpub", publicationId)
+                .putData("channelid", channelID)
+                .build();
+        try {
+            FirebaseMessaging.getInstance().send(me);
+        } catch (FirebaseMessagingException e) {
+            System.out.println("notifySuscriberAboutPublicationChannelID : "+e.toString());
         }
     }
 }

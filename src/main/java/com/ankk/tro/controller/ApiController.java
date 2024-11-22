@@ -10,6 +10,7 @@ import com.ankk.tro.services.Messervices;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import io.getstream.chat.java.models.ChannelType;
 import io.getstream.chat.java.models.User;
 import io.getstream.chat.java.services.framework.DefaultClient;
 import jakarta.annotation.PostConstruct;
@@ -117,13 +118,33 @@ public class ApiController {
         try{
             // Set STREAM CONFIGURATION
             var properties = new Properties();
-            properties.put(DefaultClient.API_KEY_PROP_NAME, STREAM_KEY);
-            properties.put(DefaultClient.API_SECRET_PROP_NAME, STREAM_SECRET);
+            properties.put(DefaultClient.API_KEY_PROP_NAME, "tbyj8qz6ucx7");
+            properties.put(DefaultClient.API_SECRET_PROP_NAME, "c66awuctzf4nfpv7a4bahuee4mrw2v2js9tx9u2w7t4zrbyp53jfq7uj7gtnsxrq");
             var client = new DefaultClient(properties);
             DefaultClient.setInstance(client);
 
-            var token = User.createToken("john", null, null);
+            /*var token = User.createToken("john", null, null);
             System.out.println("John : " + token);
+
+            var usersUpsertRequest = User.upsert();
+            usersUpsertRequest.user(User.UserRequestObject.builder().id("john").name("John").build());
+            var response = usersUpsertRequest.request();
+
+            System.out.println("response : " + response.toString());
+            */
+
+            // observe current grants of the channel type
+            /*var response = ChannelType.get("messaging").request();
+            System.out.println("Grants : "+response.getGrants());
+            // update "channel_member" role grants in "messaging" scope
+            var grants = new HashMap<String, List<String>>();
+            grants.put("channel_member", List.of(
+                    "read-channel",     // allow access to the channel
+                    "create-message",    // create messages in the channel
+                    "update-message-owner", // update own user messages
+                    "delete-message-owner" // delete own user messages
+            ));
+            ChannelType.update("messaging").grants(grants).request();*/
         }
         catch (Exception e) {
             System.out.println("STREAM CHAT Error : " + e.getMessage());
@@ -195,6 +216,31 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }
 
+    @CrossOrigin("*")
+    @PostMapping(path = "/validatemailaccount")
+    public ResponseEntity<?> validatemailaccount(
+            @RequestBody ValidationAccountRequest data,
+            HttpServletRequest request
+    )
+    {
+        Map<String, Object> stringMap = new HashMap<>();
+        stringMap.put("detail", "");
+        Utilisateur utilisateur = utilisateurRepository.findByIdAndPwdAndValidateAccount(
+                data.getIduser(), data.getCode(), 0
+        ).orElse(null);
+        if(utilisateur != null){
+            // Update :
+            utilisateur.setValidateAccount(1);
+            utilisateurRepository.save(utilisateur);
+            stringMap.put("message", "ok");
+        }
+        else{
+            stringMap.put("message", "error");
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        }
+        return ResponseEntity.ok(stringMap);
+    }
+
 
     @CrossOrigin("*")
     @PostMapping(path = "/manageuser")
@@ -210,6 +256,7 @@ public class ApiController {
             newUser = true;
             ur = new Utilisateur();
             ur.setActive(1);
+            ur.setValidateAccount(0);
             // Check if exists :
             if(!user.getCodeinvitation().isEmpty()){
                 if(checkCodeParrainageExistence(user.getCodeinvitation())){
@@ -275,7 +322,19 @@ public class ApiController {
             ur.setNotificationsParam(notificationsParam);
         }
         //
-        utilisateurRepository.save(ur);
+        Utilisateur keepUr = utilisateurRepository.save(ur);
+        var newToken = "";
+        if(newUser){
+            // From there, GENERATE his STREAM CHAT 'TOKEN' :
+            String iD = keepUr.getId().toString();
+            newToken = User.createToken(iD, null, null);
+            keepUr.setStreamChatToken(newToken);
+            utilisateurRepository.save(keepUr);
+            System.out.println("STREAM CHAT : "+newToken);
+
+            // Sync :
+            emailService.syncUserId(iD, keepUr.getNom());
+        }
 
         // Create DEFAULT 'CIBLE'
         Cible cible = new Cible();
@@ -298,8 +357,7 @@ public class ApiController {
             codeFiliationRepository.save(codeFiliation);
 
             // Send MAIL :
-            emailService.mailCreation("Identifiants de connexion",
-                    ur.getEmail(), ur.getPwd());
+            //emailService.mailCreation("Identifiants de connexion", ur.getEmail(), ur.getPwd());
         }
 
         //
@@ -308,6 +366,7 @@ public class ApiController {
         stringMap.put("typepiece", user.getTypepieceidentite());
         stringMap.put("cibleid", newUser ? cible.getId() : 0);
         stringMap.put("codeparrainage", codeParrainage);
+        stringMap.put("streamchatoken", newToken);
         return ResponseEntity.ok(stringMap);
     }
 
@@ -330,6 +389,7 @@ public class ApiController {
         stringMap.put("numero", ur != null ? ur.getContact() : "");
         stringMap.put("adresse", ur != null ? ur.getAdresse() : "");
         stringMap.put("fcmtoken", ur != null ? ur.getFcmToken() : "");
+        stringMap.put("streamtoken", ur != null ? ur.getStreamChatToken() : "");
         stringMap.put("pwd", "");
         stringMap.put("codeinvitation", "");
         stringMap.put("villeresidence", ur != null ? ur.getVilleResidence().getId() : 0);
@@ -856,7 +916,7 @@ public class ApiController {
         reservation.setPublication(publication);
         reservation.setReservationState(ReservationState.EFFECTUE);
         // persist
-        reservationRepository.save(reservation);
+        Reservation keepReservation = reservationRepository.save(reservation);
 
         // Return response :
         Map<String, Object> stringMap = new HashMap<>();
@@ -867,12 +927,21 @@ public class ApiController {
         stringMap.put("adresse", owner.getAdresse());
         Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
         stringMap.put("nationnalite", paysOwner.getAbreviation());
+        // Create CHANNEL ID, based on RESERVATION, SUSCRIBER, PUBLISHER :
+        String channel_ID = keepReservation.getId().toString() +
+                suscriber.getId().toString() +
+                owner.getId().toString();
+        // Set CHANNEL ID :
+        stringMap.put("channelid", channel_ID);
+
+        // Add members :
+        emailService.addMembersToChannels(Stream.of(suscriber, owner).toList(), channel_ID);
 
         // Notify the publication's OWNER
         Pays paysSuscriber = paysRepository.findById(suscriber.getPays().getId()).orElse(null);
         firebasemessage.notifyOwnerAboutNewReservation(owner,suscriber,reservation.getPublication(),
                 paysSuscriber,
-                reservation.getReserve());
+                reservation.getReserve(), channel_ID);
 
         return ResponseEntity.ok(stringMap);
     }
@@ -970,6 +1039,13 @@ public class ApiController {
             stringMap.put("adresse", owner.getAdresse());
             Pays paysOwner = paysRepository.findById(owner.getPays().getId()).orElse(null);
             stringMap.put("nationnalite", paysOwner.getAbreviation());
+
+            String channel_ID = reservation.getId().toString() +
+                    suscriber.getId().toString() +
+                    owner.getId().toString();
+            // Set CHANNEL ID :
+            stringMap.put("channelid", channel_ID);
+
             return ResponseEntity.ok(stringMap);
         }
         else{
