@@ -357,7 +357,7 @@ public class ApiController {
             codeFiliationRepository.save(codeFiliation);
 
             // Send MAIL :
-            //emailService.mailCreation("Identifiants de connexion", ur.getEmail(), ur.getPwd());
+            emailService.mailCreation("Identifiants de connexion", ur.getEmail(), ur.getPwd());
         }
 
         //

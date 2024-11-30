@@ -61,7 +61,7 @@ public class ValidationController {
                 ("Felicitations " + utilisateur.getNom() + " " +
                 utilisateur.getPrenom())
         );
-        modelAndView.addObject("montant", (resultAmount + " est effectif !)"));
+        modelAndView.addObject("montant", (resultAmount + " est effectif !"));
         modelAndView.addObject("date",
                 OffsetDateTime.now(Clock.systemUTC()).
                         truncatedTo(ChronoUnit.SECONDS).
@@ -181,7 +181,7 @@ public class ValidationController {
                 ("Oups " + utilisateur.getNom() + " " +
                         utilisateur.getPrenom())
         );
-        modelAndView.addObject("montant", (resultAmount + " n'a pas ete traite !)"));
+        modelAndView.addObject("montant", (resultAmount + " n'a pas ete traite !"));
         modelAndView.addObject("date",
                 OffsetDateTime.now(Clock.systemUTC()).
                         truncatedTo(ChronoUnit.SECONDS).
