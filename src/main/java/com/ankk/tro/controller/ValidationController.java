@@ -67,10 +67,6 @@ public class ValidationController {
                         truncatedTo(ChronoUnit.SECONDS).
                         format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
-        // persist
-        reservation.setReservationState(ReservationState.EFFECTUE);
-        reservationRepository.save(reservation);
-
         // Return response :
         Utilisateur owner = reservation.getPublication().getUtilisateur();
 
@@ -89,14 +85,18 @@ public class ValidationController {
         String channel_ID = reservation.getId().toString() +
                 utilisateur.getId().toString() +
                 owner.getId().toString();
+        // Update 'RESERVATION' :
+        reservation.setStreamChatId(channel_ID);
+        reservation.setReservationState(ReservationState.EFFECTUE);
+        reservationRepository.save(reservation);
 
         // Add members :
         emailService.addMembersToChannels(Stream.of(utilisateur, owner).toList(), channel_ID);
 
         // Notify PUBLICATION's curent suscriber :
-        firebasemessage.notifySuscriberAboutPublicationChannelID(utilisateur.getFcmToken(),
+        /*firebasemessage.notifySuscriberAboutPublicationChannelID(utilisateur,
                 reservation.getPublication().getId().toString(),
-                channel_ID);
+                channel_ID);*/
 
         // Notify PUBLICATION's owner :
         firebasemessage.notifyOwnerAboutNewReservation(owner,utilisateur,reservation.getPublication(),
@@ -106,7 +106,7 @@ public class ValidationController {
         // Notify SUSCRIBER that PAYMENT has been DONE :
         firebasemessage.notifySuscriberAboutReservationValidation(
                 utilisateur,owner,reservation,
-                paysOwner.getAbreviation());
+                paysOwner.getAbreviation(), channel_ID);
 
         return modelAndView;
     }

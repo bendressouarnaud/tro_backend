@@ -6,4 +6,5 @@ import lombok.Data;
 public class SouscriptionBean {
     long idpub, iduser, millisecondes, reserve;
     int statut;
+    String channelid;
 }

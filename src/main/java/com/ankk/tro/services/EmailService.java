@@ -45,6 +45,7 @@ public class EmailService {
             emailSender.send(mimeMessage);
         } catch (Exception exc) {
             //
+            //System.out.println("exc : "+exc.toString());
         }
     }
 
@@ -95,6 +96,25 @@ public class EmailService {
     }
 
     @Async
+    public void mailNotification(String destinataire,
+                                      String sujet, String message){
+        MimeMessage mimeMessage = emailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true,
+                    "utf-8");
+
+            helper.setText(String.valueOf(message), true);
+            helper.setTo(destinataire);
+            helper.setSubject(sujet);
+            helper.setBcc("ngbandamakonan@gmail.com");
+            helper.setFrom(expediteur);
+            emailSender.send(mimeMessage);
+        } catch (Exception exc) {
+            //
+        }
+    }
+
+    @Async
     public void syncUserId(String id, String name) {
         try {
             var usersUpsertRequest = User.upsert();
@@ -116,7 +136,7 @@ public class EmailService {
         try {
             var gandalf =
                     User.UserRequestObject.builder()
-                            .id(users.get(0).getId().toString())
+                            .id(users.get(0).getStreamChatId())
                             .name(users.get(0).getNom())
                             .build();
             Channel.getOrCreate("messaging", channel)
@@ -126,7 +146,7 @@ public class EmailService {
                     )
                     .request();
             for(Utilisateur user : users) {
-                Channel.update("messaging", channel).addMember(user.getId().toString()).hideHistory(true).request();
+                Channel.update("messaging", channel).addMember(user.getStreamChatId()).hideHistory(true).request();
             }
         }
         catch (Exception exc) {

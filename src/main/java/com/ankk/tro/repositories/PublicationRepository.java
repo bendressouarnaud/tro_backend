@@ -20,4 +20,5 @@ public interface PublicationRepository extends CrudRepository<Publication, Long>
             OffsetDateTime datevoyage,
             List<Ville> dep, List<Ville> dest);
     List<Publication> findAllByUtilisateur(Utilisateur utilisateur);
+    List<Publication> findAllByOrderByIdAsc();
 }

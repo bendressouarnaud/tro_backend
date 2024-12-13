@@ -26,6 +26,7 @@ public class Reservation extends AbstractEntity{
 
     private int montant;
     private int reserve;
+    private String streamChatId;
 
     @Enumerated(EnumType.ORDINAL)
     private ReservationState reservationState;

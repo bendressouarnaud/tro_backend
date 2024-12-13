@@ -12,6 +12,7 @@ public class PublicationBean {
     private int reservereelle;
     private int milliseconds;
     private String identifiant;
+    private String streamchannelid;
 
     private int prix;
     private int read;

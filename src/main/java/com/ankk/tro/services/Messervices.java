@@ -1,17 +1,25 @@
 package com.ankk.tro.services;
 
+import com.ankk.tro.enums.SmartphoneType;
+import com.ankk.tro.httpbean.UserTokenMobileOs;
 import com.ankk.tro.model.Utilisateur;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class Messervices {
 
+    public String generateCodeFiliation(String user, long id){
+        String[] tamponNom = user.split(" ");
+        return tamponNom[0].charAt(0) + "" + tamponNom[1].charAt(0) + String.valueOf(id);
+    }
 
-    public String generatePublicationId(String user, long id){
+    public String generatePublicationId(String user, long id,int... valeur){
         OffsetDateTime offsetDateTime = OffsetDateTime.now(Clock.systemUTC());
         String[] tamponName = user.split(" ");
         StringBuilder finalName = new StringBuilder();
@@ -20,11 +28,13 @@ public class Messervices {
         for(String name : tamponName){
             finalName.append(name.charAt(0));
         }
-        finalName.append(String.valueOf(offsetDateTime.getMonthValue()));
-        finalName.append(String.valueOf(offsetDateTime.getDayOfMonth()));
-        finalName.append(String.valueOf(offsetDateTime.getHour()));
-        finalName.append(String.valueOf(offsetDateTime.getMinute()));
-        finalName.append(String.valueOf(offsetDateTime.getSecond()));
+        if(valeur.length == 0) {
+            finalName.append(String.valueOf(offsetDateTime.getMonthValue()));
+            finalName.append(String.valueOf(offsetDateTime.getDayOfMonth()));
+            finalName.append(String.valueOf(offsetDateTime.getHour()));
+            finalName.append(String.valueOf(offsetDateTime.getMinute()));
+            finalName.append(String.valueOf(offsetDateTime.getSecond()));
+        }
         return finalName.toString();
     }
 
@@ -53,5 +63,17 @@ public class Messervices {
         else{
             return true;
         }
+    }
+
+    public String generateCustomUserId(String name, String prenom, Long ids){
+        return name.charAt(0) + prenom.charAt(0) + ids.toString();
+    }
+
+    public UserTokenMobileOs generateObject(Utilisateur utilisateur){
+        UserTokenMobileOs uos = new UserTokenMobileOs();
+        uos.setToken(utilisateur.getFcmToken());
+        uos.setSmartphoneType(utilisateur.getSmartphoneType() == SmartphoneType.IPHONE ? 0 : 1);
+        uos.setEmail(utilisateur.getEmail());
+        return uos;
     }
 }

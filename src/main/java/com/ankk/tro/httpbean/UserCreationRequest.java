@@ -9,4 +9,5 @@ public class UserCreationRequest {
     String nom, prenom, email, contact, adresse, codeinvitation, numeropieceidentite,
             pays, abreviationpays,typepieceidentite,token,ville;
     long idpays, idville, iduser;
+    int smartphonetype;
 }

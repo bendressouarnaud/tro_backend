@@ -1,5 +1,7 @@
 package com.ankk.tro.model;
 
+import com.ankk.tro.enums.ReservationState;
+import com.ankk.tro.enums.SmartphoneType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,9 +37,12 @@ public class Utilisateur extends AbstractEntity{
     private String pwd;
     private String fcmToken;
     private String streamChatToken;
+    private String streamChatId;
     private String codeInvitation;
     private Integer active;
     private Integer validateAccount;
+    @Enumerated(EnumType.ORDINAL)
+    private SmartphoneType smartphoneType;
 
     @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "pays_id", foreignKey = @ForeignKey(name = "FK_pays_utilisateur"))

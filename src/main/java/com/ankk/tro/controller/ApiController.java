@@ -1,6 +1,7 @@
 package com.ankk.tro.controller;
 
 import com.ankk.tro.enums.ReservationState;
+import com.ankk.tro.enums.SmartphoneType;
 import com.ankk.tro.httpbean.*;
 import com.ankk.tro.model.*;
 import com.ankk.tro.repositories.*;
@@ -58,6 +59,7 @@ public class ApiController {
     private final ChatRepository chatRepository;
     private final RemboursementRepository remboursementRepository;
     private final NotificationsParamRepository notificationsParamRepository;
+    private final LocalParametersRepository localParametersRepository;
     private final Messervices messervices;
     private final Firebasemessage firebasemessage;
     private final EmailService emailService;
@@ -122,6 +124,33 @@ public class ApiController {
             properties.put(DefaultClient.API_SECRET_PROP_NAME, "c66awuctzf4nfpv7a4bahuee4mrw2v2js9tx9u2w7t4zrbyp53jfq7uj7gtnsxrq");
             var client = new DefaultClient(properties);
             DefaultClient.setInstance(client);
+
+            /*Utilisateur dakaud = utilisateurRepository.findById(2l).orElse(null);
+            dakaud.setSmartphoneType(SmartphoneType.IPHONE);
+            utilisateurRepository.save(dakaud);
+
+            Utilisateur yakasse = utilisateurRepository.findById(3l).orElse(null);
+            yakasse.setSmartphoneType(SmartphoneType.ANDROID);
+            utilisateurRepository.save(yakasse);
+             */
+
+            /*Iterator<Utilisateur> users = utilisateurRepository.findAll().iterator();
+            while(users.hasNext()) {
+                Utilisateur element = users.next();
+                System.out.println( element.getId() +"  ---   Nom : " +element.getNom() +
+                        "  ---   Pwd : " +element.getPwd() + "  ---   Smartphone : " +element.getSmartphoneType()
+                        + "  ---   mail : " +element.getEmail()
+                        + "  ---   active : " +element.getActive());
+            }*/
+
+            // Init 'LocalParameters' table
+            LocalParameters localParameters = localParametersRepository.findById(1L).orElse(null);
+            if(localParameters == null){
+                localParameters = new LocalParameters();
+                localParameters.setId(1L);
+                localParameters.setEnvoiMail(true);
+                localParametersRepository.save(localParameters);
+            }
 
             /*var token = User.createToken("john", null, null);
             System.out.println("John : " + token);
@@ -243,6 +272,31 @@ public class ApiController {
 
 
     @CrossOrigin("*")
+    @PostMapping(path = "/resendpassword")
+    public ResponseEntity<?> resendpassword(
+            @RequestBody ValidationAccountRequest data,
+            HttpServletRequest request
+    )
+    {
+        Map<String, Object> stringMap = new HashMap<>();
+        stringMap.put("detail", "");
+        Utilisateur utilisateur = utilisateurRepository.findByIdAndEmail(
+                data.getIduser(), data.getCode()
+        ).orElse(null);
+        if(utilisateur != null){
+            // Send the mail :
+            emailService.mailCreation("Rappel mot de passe", "***", utilisateur.getPwd());
+            stringMap.put("message", "ok");
+        }
+        else{
+            stringMap.put("message", "error");
+            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        }
+        return ResponseEntity.ok(stringMap);
+    }
+
+
+    @CrossOrigin("*")
     @PostMapping(path = "/manageuser")
     public ResponseEntity<?> manageuser(
             @RequestBody UserCreationRequest user,
@@ -257,6 +311,8 @@ public class ApiController {
             ur = new Utilisateur();
             ur.setActive(1);
             ur.setValidateAccount(0);
+            ur.setSmartphoneType(user.getSmartphonetype() == 0 ?
+                    SmartphoneType.IPHONE : SmartphoneType.ANDROID);
             // Check if exists :
             if(!user.getCodeinvitation().isEmpty()){
                 if(checkCodeParrainageExistence(user.getCodeinvitation())){
@@ -324,13 +380,17 @@ public class ApiController {
         //
         Utilisateur keepUr = utilisateurRepository.save(ur);
         var newToken = "";
+        var streamChatId = "";
         if(newUser){
             // From there, GENERATE his STREAM CHAT 'TOKEN' :
-            String iD = keepUr.getId().toString();
+            String iD = messervices.generateCustomUserId(
+                    keepUr.getNom(), keepUr.getPrenom(), keepUr.getId());
+            streamChatId = iD;
             newToken = User.createToken(iD, null, null);
             keepUr.setStreamChatToken(newToken);
+            keepUr.setStreamChatId(streamChatId);
             utilisateurRepository.save(keepUr);
-            System.out.println("STREAM CHAT : "+newToken);
+            //System.out.println("STREAM CHAT : "+newToken);
 
             // Sync :
             emailService.syncUserId(iD, keepUr.getNom());
@@ -350,14 +410,18 @@ public class ApiController {
 
             // Create first CODE :
             CodeFiliation codeFiliation = new CodeFiliation();
-            codeParrainage = messervices.generatePublicationId(
+            codeParrainage = messervices.generateCodeFiliation(
                     (user.getNom().trim() + " " + user.getPrenom().trim()), ur.getId());
             codeFiliation.setCode(codeParrainage);
             codeFiliation.setUtilisateur(ur);
             codeFiliationRepository.save(codeFiliation);
 
             // Send MAIL :
-            emailService.mailCreation("Identifiants de connexion", ur.getEmail(), ur.getPwd());
+            LocalParameters localParameters = localParametersRepository.findById(1L).orElse(null);
+            assert localParameters != null;
+            if(localParameters.isEnvoiMail()){
+                emailService.mailCreation("Identifiants de connexion", ur.getEmail(), ur.getPwd());
+            }
         }
 
         //
@@ -367,6 +431,7 @@ public class ApiController {
         stringMap.put("cibleid", newUser ? cible.getId() : 0);
         stringMap.put("codeparrainage", codeParrainage);
         stringMap.put("streamchatoken", newToken);
+        stringMap.put("streamchatid", streamChatId);
         return ResponseEntity.ok(stringMap);
     }
 
@@ -390,6 +455,7 @@ public class ApiController {
         stringMap.put("adresse", ur != null ? ur.getAdresse() : "");
         stringMap.put("fcmtoken", ur != null ? ur.getFcmToken() : "");
         stringMap.put("streamtoken", ur != null ? ur.getStreamChatToken() : "");
+        stringMap.put("streamchatid", ur != null ? ur.getStreamChatId() : "");
         stringMap.put("pwd", "");
         stringMap.put("codeinvitation", "");
         stringMap.put("villeresidence", ur != null ? ur.getVilleResidence().getId() : 0);
@@ -398,6 +464,7 @@ public class ApiController {
         List<UserBean> userBeans = new ArrayList<>();
         List<SouscriptionBean> souscriptionsBeans = new ArrayList<>();
         if(ur != null){
+
             List<Cible> cibles = cibleRepository.findByUtilisateur(ur);
             for(Cible cible : cibles){
                 CibleBean cn = new CibleBean();
@@ -413,6 +480,9 @@ public class ApiController {
             }
             // Save TOKEN :
             ur.setFcmToken(data.getFcmtoken());
+            // Update
+            ur.setSmartphoneType(data.getSmartphonetype() == 0 ?
+                    SmartphoneType.IPHONE : SmartphoneType.ANDROID);
             utilisateurRepository.save(ur);
 
             // Now look for PUBLICATION attached to CIBLE :
@@ -451,6 +521,7 @@ public class ApiController {
                 publicationBean.setPrix(publication.getPrix());
                 publicationBean.setDevise(publication.getDevise().getId());
                 publicationBean.setRead(1);
+                publicationBean.setStreamchannelid(reservation != null ? reservation.getStreamChatId() : "");
                 publicationBeans.add(publicationBean);
 
                 // Now get USER who created the PUBLICATION :
@@ -490,6 +561,7 @@ public class ApiController {
                 publicationBean.setPrix(publication.getPrix());
                 publicationBean.setDevise(publication.getDevise().getId());
                 publicationBean.setRead(1);
+                publicationBean.setStreamchannelid("");
                 publicationBeans.add(publicationBean);
 
                 // Check if PEOPLE has suscribed to that PUBLICATION :
@@ -513,6 +585,7 @@ public class ApiController {
                             reservation.getCreationDatetime().toInstant().toEpochMilli());
                     souscriptionBean.setStatut(
                         reservation.getReservationState() == ReservationState.TRAITE ? 1 : 0);
+                    souscriptionBean.setChannelid(reservation.getStreamChatId());
                     // Feed :
                     souscriptionsBeans.add(souscriptionBean);
                 }
@@ -666,7 +739,7 @@ public class ApiController {
             reservationRepository.save(reservation);
             // Notify OWNER :
             firebasemessage.notifyOwnerAboutSubscriptionCancellation(
-                    publication.getUtilisateur().getFcmToken(), publication, utilisateur.getId());
+                    publication.getUtilisateur(), publication, utilisateur.getId());
             return ResponseEntity.ok(Optional.empty());
         }
         else return ResponseEntity.status(HttpStatus.FORBIDDEN).body("");
@@ -706,7 +779,7 @@ public class ApiController {
                             amountToRepay, publication.getIdentifiant());
                 }
                 // Notify SUSCRIBER :
-                firebasemessage.notifySuscriberAboutPublicationCancellation(suscriber.getFcmToken(),
+                firebasemessage.notifySuscriberAboutPublicationCancellation(suscriber,
                         publication);
             }
             return ResponseEntity.ok(Optional.empty());
@@ -851,8 +924,10 @@ public class ApiController {
         //
         publication.setDevise(devise);
         publication.setPrix(data.getPrix());
+        // Pick the TOTAL of PUBLICATION
         publication.setIdentifiant(messervices.generatePublicationId(
-                (utilisateur.getNom() + " " + utilisateur.getPrenom()), utilisateur.getId()));
+                (utilisateur.getNom() + " " + utilisateur.getPrenom()),
+                publicationRepository.findAllByOrderByIdAsc().size(), 0));
         publication.setDateVoyage(
                 OffsetDateTime.of(
                         LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
@@ -870,13 +945,13 @@ public class ApiController {
             // Process :
             String departDestination = villeDepart.getLibelle() + "  ->  " +
                     villeDestination.getLibelle();
-            List<String> lesCibles = cibles.stream()
+            List<UserTokenMobileOs> lesCibles = cibles.stream()
                     .filter(cible ->
                         messervices.
                             checkNotificationRestriction(
                                 cible.getUtilisateur(), pubTamp.getDateVoyage()))
                     .map(
-                        cible -> cible.getUtilisateur().getFcmToken()
+                        cible -> messervices.generateObject(cible.getUtilisateur())
                     ).toList();
             if(!lesCibles.isEmpty()){
                 firebasemessage.notifySuscriberAboutCible(lesCibles,
@@ -915,6 +990,7 @@ public class ApiController {
         reservation.setUtilisateur(suscriber);
         reservation.setPublication(publication);
         reservation.setReservationState(ReservationState.EFFECTUE);
+        reservation.setStreamChatId(""); // By DEFAULT
         // persist
         Reservation keepReservation = reservationRepository.save(reservation);
 
@@ -931,6 +1007,10 @@ public class ApiController {
         String channel_ID = keepReservation.getId().toString() +
                 suscriber.getId().toString() +
                 owner.getId().toString();
+        // Update :
+        keepReservation.setStreamChatId(channel_ID);
+        reservationRepository.save(keepReservation);
+
         // Set CHANNEL ID :
         stringMap.put("channelid", channel_ID);
 
@@ -1093,7 +1173,7 @@ public class ApiController {
                                             bonusRepository.findByUtilisateur(d.getUtilisateur());
                                     double totBonus = lesBonus.stream().mapToDouble(Bonus::getMontant).sum();
                                     // Notify GODFATHER :
-                                    firebasemessage.notifyUserAboutBonus(d.getUtilisateur().getFcmToken(),
+                                    firebasemessage.notifyUserAboutBonus(d.getUtilisateur(),
                                             publication.getIdentifiant(),
                                             totBonus);
 
@@ -1107,7 +1187,7 @@ public class ApiController {
                                             bonusRepository.findByUtilisateur(owner);
                                     double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
                                     // Notify OWNER :
-                                    firebasemessage.notifyUserAboutBonus(owner.getFcmToken(),
+                                    firebasemessage.notifyUserAboutBonus(owner,
                                             publication.getIdentifiant(),
                                             totBonusOwner);
                                 }
@@ -1123,7 +1203,7 @@ public class ApiController {
                         bonusRepository.findByUtilisateur(owner);
                 double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
                 // Notify OWNER :
-                firebasemessage.notifyUserAboutBonus(owner.getFcmToken(),
+                firebasemessage.notifyUserAboutBonus(owner,
                         publication.getIdentifiant(),
                         totBonusOwner);
             }
