@@ -4,12 +4,7 @@ import com.ankk.tro.enums.SmartphoneType;
 import com.ankk.tro.httpbean.UserTokenMobileOs;
 import com.ankk.tro.model.*;
 import com.ankk.tro.repositories.LocalParametersRepository;
-import com.ankk.tro.repositories.PaysRepository;
 import com.ankk.tro.repositories.VilleRepository;
-import com.google.api.client.auth.openidconnect.IdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.json.webtoken.JsonWebToken;
-import com.google.firebase.auth.internal.FirebaseCustomAuthToken;
 import com.google.firebase.messaging.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -19,7 +14,6 @@ import java.text.DecimalFormat;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -43,66 +37,67 @@ public class Firebasemessage {
         LocalParameters localParameters = localParametersRepository.findById(1L).orElse(null);
         try {
             for(UserTokenMobileOs userToken : tokens){
-                if(userToken.getSmartphoneType() == 1){
-                    // ANDROID  :
-                    Message me = Message.builder()
-                            .setNotification(builder)
-                            .setToken(userToken.getToken())
-                            .putData("type", typeMessage)
-                            .putData("sujet", "1")  // Subject
-                            .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
-                            .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
-                            .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
-                            .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
-                            .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
-                            .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
-                            .putData("reserve", String.valueOf(publication.getReserve()))
-                            .putData("identifiant", publication.getIdentifiant())
-                            .putData("prix", String.valueOf(publication.getPrix()))
-                            .putData("devise", String.valueOf(publication.getDevise().getId()))
-                            .build();
-                    try {
-                        FirebaseMessaging.getInstance().send(me);
-                    } catch (FirebaseMessagingException e) {
-                        System.out.println("FirebaseMessagingException ANDROID : "+ e.getMessage());
+                if(!userToken.getToken().isBlank()) {
+                    if (userToken.getSmartphoneType() == 1) {
+                        // ANDROID  :
+                        Message me = Message.builder()
+                                .setNotification(builder)
+                                .setToken(userToken.getToken())
+                                .putData("type", typeMessage)
+                                .putData("sujet", "1")  // Subject
+                                .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
+                                .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
+                                .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
+                                .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
+                                .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
+                                .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
+                                .putData("reserve", String.valueOf(publication.getReserve()))
+                                .putData("identifiant", publication.getIdentifiant())
+                                .putData("prix", String.valueOf(publication.getPrix()))
+                                .putData("devise", String.valueOf(publication.getDevise().getId()))
+                                .build();
+                        try {
+                            FirebaseMessaging.getInstance().send(me);
+                        } catch (FirebaseMessagingException e) {
+                            System.out.println("FirebaseMessagingException ANDROID : " + e.getMessage());
+                        }
                     }
-                }
-                else{
-                    // FIRST, SEND APN
-                    ApnsConfig apn =  ApnsConfig.builder()
-                            .setAps(Aps.builder()
-                                    .setSound("default")
-                                    .putCustomData("content-available",1)
-                                    .build())
-                            .putHeader("apns-priority","5")
-                            //.putHeader("apns-push-type","background")
-                            .build();
+                    else {
+                        // FIRST, SEND APN
+                        ApnsConfig apn = ApnsConfig.builder()
+                                .setAps(Aps.builder()
+                                        .setSound("default")
+                                        .putCustomData("content-available", 1)
+                                        .build())
+                                .putHeader("apns-priority", "5")
+                                //.putHeader("apns-push-type","background")
+                                .build();
 
-                    Message me = Message.builder()
-                            .setNotification(builder)
-                            .setApnsConfig(apn)
-                            .setToken(userToken.getToken())
-                            .putData("type", typeMessage)
-                            .putData("sujet", "1")  // Subject
-                            .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
-                            .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
-                            .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
-                            .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
-                            .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
-                            .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
-                            .putData("reserve", String.valueOf(publication.getReserve()))
-                            .putData("identifiant", publication.getIdentifiant())
-                            .putData("prix", String.valueOf(publication.getPrix()))
-                            .putData("devise", String.valueOf(publication.getDevise().getId()))
-                            .build();
-                    // Add it :
-                    try {
-                        FirebaseMessaging.getInstance().send(me);
-                    } catch (FirebaseMessagingException e) {
-                        System.out.println("FirebaseMessagingException ANDROID : "+ e.getMessage());
-                    }
+                        Message me = Message.builder()
+                                .setNotification(builder)
+                                .setApnsConfig(apn)
+                                .setToken(userToken.getToken())
+                                .putData("type", typeMessage)
+                                .putData("sujet", "1")  // Subject
+                                .putData("id", publication.getId().toString())  // Feed 'Magasin' table :
+                                .putData("userid", String.valueOf(publication.getUtilisateur().getId()))
+                                .putData("villedepart", String.valueOf(publication.getVilleDepart().getId()))
+                                .putData("villedestination", String.valueOf(publication.getVilleDestination().getId()))
+                                .putData("datevoyage", String.valueOf(publication.getDateVoyage().toString()))
+                                .putData("datepublication", String.valueOf(publication.getCreationDatetime().toString()))
+                                .putData("reserve", String.valueOf(publication.getReserve()))
+                                .putData("identifiant", publication.getIdentifiant())
+                                .putData("prix", String.valueOf(publication.getPrix()))
+                                .putData("devise", String.valueOf(publication.getDevise().getId()))
+                                .build();
+                        // Add it :
+                        try {
+                            FirebaseMessaging.getInstance().send(me);
+                        } catch (FirebaseMessagingException e) {
+                            System.out.println("FirebaseMessagingException ANDROID : " + e.getMessage());
+                        }
 
-                    // SECOND :
+                        // SECOND :
                     /*Message meS = Message.builder()
                             .setNotification(builder)
                             .setToken(userToken.getToken())
@@ -121,6 +116,30 @@ public class Firebasemessage {
                             .build();
                     FirebaseMessaging.getInstance().send(meS);*/
 
+                        // Send a mail
+                        StringBuilder contenu = new StringBuilder();
+                        contenu.append("<h2> Nouvelle destination </h2>");
+                        contenu.append("<p> Date : ");
+                        String[] dateHeure = generateDateAndTime(publication.getDateVoyage()).split("T");
+                        contenu.append(dateHeure[0]);
+                        contenu.append("      Heure : ");
+                        contenu.append(dateHeure[1]);
+                        contenu.append(" </p>");
+                        contenu.append("<p> De : ");
+                        contenu.append(villeRepository.findById(publication.getVilleDepart().getId())
+                                .orElse(null).getLibelle());
+                        contenu.append(" </p>");
+                        contenu.append("<p> A : ");
+                        contenu.append(villeRepository.findById(publication.getVilleDestination().getId())
+                                .orElse(null).getLibelle());
+                        contenu.append(" </p>");
+                        contenu.append("</h3>");
+                        assert localParameters != null;
+                        if (localParameters.isEnvoiMail())
+                            emailService.mailNotification(userToken.getEmail(), "Nouvelle destination", contenu.toString());
+                    }
+                }
+                else{
                     // Send a mail
                     StringBuilder contenu = new StringBuilder();
                     contenu.append("<h2> Nouvelle destination </h2>");
@@ -131,16 +150,17 @@ public class Firebasemessage {
                     contenu.append(dateHeure[1]);
                     contenu.append(" </p>");
                     contenu.append("<p> De : ");
-                    contenu.append( villeRepository.findById(publication.getVilleDepart().getId())
+                    contenu.append(villeRepository.findById(publication.getVilleDepart().getId())
                             .orElse(null).getLibelle());
                     contenu.append(" </p>");
                     contenu.append("<p> A : ");
-                    contenu.append( villeRepository.findById(publication.getVilleDestination().getId())
+                    contenu.append(villeRepository.findById(publication.getVilleDestination().getId())
                             .orElse(null).getLibelle());
                     contenu.append(" </p>");
                     contenu.append("</h3>");
                     assert localParameters != null;
-                    if(localParameters.isEnvoiMail()) emailService.mailNotification(userToken.getEmail(), "Nouvelle destination", contenu.toString());
+                    if (localParameters.isEnvoiMail())
+                        emailService.mailNotification(userToken.getEmail(), "Nouvelle destination", contenu.toString());
                 }
             }
         } catch (Exception e) {

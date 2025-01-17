@@ -10,4 +10,6 @@ import java.util.List;
 public interface CibleRepository extends CrudRepository<Cible, Long> {
     List<Cible> findByUtilisateur(Utilisateur utilisateur);
     List<Cible> findByVilleDepartAndVilleDestination(Ville depart, Ville destination);
+    List<Cible> findByVilleDepartAndVilleDestinationAndUtilisateurNot(Ville depart, Ville destination
+            , Utilisateur utilisateur);
 }

@@ -16,7 +16,9 @@ public class Messervices {
 
     public String generateCodeFiliation(String user, long id){
         String[] tamponNom = user.split(" ");
-        return tamponNom[0].charAt(0) + "" + tamponNom[1].charAt(0) + String.valueOf(id);
+        OffsetDateTime offsetDateTime = OffsetDateTime.now(Clock.systemUTC());
+        return String.valueOf(offsetDateTime.getYear()).substring(2,4) +
+                tamponNom[0].charAt(0) + tamponNom[1].charAt(0) + String.valueOf(id);
     }
 
     public String generatePublicationId(String user, long id,int... valeur){
@@ -43,6 +45,8 @@ public class Messervices {
         OffsetDateTime offsetDateTime = OffsetDateTime.now(Clock.systemUTC());
         String[] tamponName = user.split(" ");
         StringBuilder finalName = new StringBuilder();
+        String year = String.valueOf(offsetDateTime.getYear());
+        finalName.append(year, 2, 4);
         for(String name : tamponName){
             finalName.append(name.charAt(0));
         }

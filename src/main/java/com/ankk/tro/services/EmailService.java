@@ -120,7 +120,7 @@ public class EmailService {
             var usersUpsertRequest = User.upsert();
             usersUpsertRequest.user(User.UserRequestObject.builder().id(id).name(name).build());
             var response = usersUpsertRequest.request();
-            System.out.println("response : "+response.toString());
+            //System.out.println("response : "+response.toString());
 
             // Register DEVICE :
 

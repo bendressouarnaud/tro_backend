@@ -324,7 +324,7 @@ public class ApiController {
             }
             else ur.setCodeInvitation("");
             ur.setPwd(messervices.generatePwd(
-                    (user.getNom().trim() + user.getPrenom().trim())));
+                    (user.getNom().trim() + " " + user.getPrenom().trim())));
         }
         else if(ur != null && (user.getIduser() == 0 || ur.getActive() == 0)){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -393,7 +393,7 @@ public class ApiController {
             //System.out.println("STREAM CHAT : "+newToken);
 
             // Sync :
-            emailService.syncUserId(iD, keepUr.getNom());
+            //emailService.syncUserId(iD, keepUr.getNom());
         }
 
         // Create DEFAULT 'CIBLE'
@@ -521,7 +521,9 @@ public class ApiController {
                 publicationBean.setPrix(publication.getPrix());
                 publicationBean.setDevise(publication.getDevise().getId());
                 publicationBean.setRead(1);
-                publicationBean.setStreamchannelid(reservation != null ? reservation.getStreamChatId() : "");
+                publicationBean.setStreamchannelid(reservation != null ? (
+                        reservation.getStreamChatId() != null ?
+                                reservation.getStreamChatId() : "") : "");
                 publicationBeans.add(publicationBean);
 
                 // Now get USER who created the PUBLICATION :
@@ -585,7 +587,8 @@ public class ApiController {
                             reservation.getCreationDatetime().toInstant().toEpochMilli());
                     souscriptionBean.setStatut(
                         reservation.getReservationState() == ReservationState.TRAITE ? 1 : 0);
-                    souscriptionBean.setChannelid(reservation.getStreamChatId());
+                    souscriptionBean.setChannelid(reservation.getStreamChatId() != null ?
+                            reservation.getStreamChatId() : "");
                     // Feed :
                     souscriptionsBeans.add(souscriptionBean);
                 }
@@ -701,7 +704,7 @@ public class ApiController {
             publicationBean.setReserve(publication.getReserve());
             publicationBean.setActive(reservation != null ?
                     (reservation.getReservationState() == ReservationState.TRAITE ? 2 : 1) : 1);
-            publicationBean.setReservereelle(reservation != null ? reservation.getReserve() : 0);
+            publicationBean.setReservereelle(0);
             publicationBean.setSouscripteur(reservation != null ? publisher.getId() : 0);
             publicationBean.setMilliseconds(
                     (int)(publication.getDateVoyage().toInstant().toEpochMilli()));
@@ -710,7 +713,12 @@ public class ApiController {
             publicationBean.setPrix(publication.getPrix());
             publicationBean.setDevise(publication.getDevise().getId());
             publicationBean.setRead(1);
+            publicationBean.setStreamchannelid(reservation != null ? (
+                    reservation.getStreamChatId() != null ?
+                            reservation.getStreamChatId() : "") : "");
             publicationBeans.add(publicationBean);
+
+
         }
         Map<String, Object> stringMap = new HashMap<>();
         stringMap.put("idcible", cible.getId());
@@ -933,6 +941,7 @@ public class ApiController {
                         LocalDateTime.ofEpochSecond((data.getMilliseconds() / 1000), 0
                                 , ZoneOffset.UTC), ZoneOffset.UTC)
         );
+        publication.setCreationDatetime(OffsetDateTime.now(Clock.systemUTC()));
         publicationRepository.save(publication);
 
         // Create temporary :
@@ -940,7 +949,7 @@ public class ApiController {
 
         // Look for those who are interested :
         List<Cible> cibles = cibleRepository
-                .findByVilleDepartAndVilleDestination(villeDepart, villeDestination);
+                .findByVilleDepartAndVilleDestinationAndUtilisateurNot(villeDepart, villeDestination, utilisateur);
         if(!cibles.isEmpty()){
             // Process :
             String departDestination = villeDepart.getLibelle() + "  ->  " +
@@ -1040,58 +1049,69 @@ public class ApiController {
         //
         Reservation reservation = reservationRepository.
                 findByUtilisateurAndPublication(suscriber, publication);
-        // Create NEW OBJECT if needed :
-        if(reservation == null) reservation = new Reservation();
-        reservation.setReserve(data.getReserve());
-        reservation.setMontant(data.getAmount());
-        reservation.setUtilisateur(suscriber);
-        reservation.setPublication(publication);
-        reservation.setReservationState(ReservationState.EN_COURS);
-        // persist
-        reservationRepository.save(reservation);
-
+        // CHECK if RESERVE is still available :
+        assert publication != null;
+        int totalReserve = publication.getReserve() - publication.getReservations().stream().mapToInt(Reservation::getReserve).sum();
         Map<String, Object> stringMap = new HashMap<>();
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer "+ waveToken);
-        headers.add("Content-Type", "application/json");
+        if(data.getReserve() <= totalReserve) {
+            // Create NEW OBJECT if needed :
+            if (reservation == null) reservation = new Reservation();
+            reservation.setReserve(data.getReserve());
+            reservation.setMontant(data.getAmount());
+            reservation.setUtilisateur(suscriber);
+            reservation.setPublication(publication);
+            reservation.setReservationState(ReservationState.EN_COURS);
+            // persist
+            reservationRepository.save(reservation);
 
-        try {
-            // Call WEB Services :
-            RestTemplate restTemplate = new RestTemplate();
-            WavePaymentOriginalRequest objectRequest = new WavePaymentOriginalRequest();
-            objectRequest.setAmount(data.getAmount());
-            objectRequest.setCurrency(data.getCurrency());
-            objectRequest.setErrorUrl(
-                    backendWebUrl + "trobackend/invalidation/" +
-                    reservation.getId());
-            objectRequest.setSuccessUrl(
-                    backendWebUrl + "trobackend/validation/" +
-                        reservation.getId()
-            );
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", "Bearer " + waveToken);
+            headers.add("Content-Type", "application/json");
 
-            HttpEntity<WavePaymentOriginalRequest> entity = new HttpEntity<>(objectRequest, headers);
-            ResponseEntity<WavePaymentResponse> responseEntity = restTemplate.postForEntity(waveUrl,
-                    entity, WavePaymentResponse.class);
-            if(responseEntity.getStatusCode().is2xxSuccessful()){
-                // Persist :
-                WavePaymentResponse wavePaymentResponse = responseEntity.getBody();
-                ApiRequest apiRequest = new ApiRequest();
-                apiRequest.setApiId(wavePaymentResponse.getId());
-                apiRequest.setLaunchUrl(wavePaymentResponse.getWaveLaunchUrl());
-                apiRequest.setReservation(reservation);
-                apiRequestRepository.save(apiRequest);
+            try {
+                // Call WEB Services :
+                RestTemplate restTemplate = new RestTemplate();
+                WavePaymentOriginalRequest objectRequest = new WavePaymentOriginalRequest();
+                objectRequest.setAmount(data.getAmount());
+                objectRequest.setCurrency(data.getCurrency());
+                objectRequest.setErrorUrl(
+                        backendWebUrl + "trobackend/invalidation/" +
+                                reservation.getId());
+                objectRequest.setSuccessUrl(
+                        backendWebUrl + "trobackend/validation/" +
+                                reservation.getId()
+                );
 
-                stringMap.put("id", wavePaymentResponse.getId());
-                stringMap.put("wave_launch_url", wavePaymentResponse.getWaveLaunchUrl());
-                return ResponseEntity.ok(stringMap);
+                HttpEntity<WavePaymentOriginalRequest> entity = new HttpEntity<>(objectRequest, headers);
+                ResponseEntity<WavePaymentResponse> responseEntity = restTemplate.postForEntity(waveUrl,
+                        entity, WavePaymentResponse.class);
+                if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                    // Persist :
+                    WavePaymentResponse wavePaymentResponse = responseEntity.getBody();
+                    ApiRequest apiRequest = new ApiRequest();
+                    apiRequest.setApiId(wavePaymentResponse.getId());
+                    apiRequest.setLaunchUrl(wavePaymentResponse.getWaveLaunchUrl());
+                    apiRequest.setReservation(reservation);
+                    apiRequestRepository.save(apiRequest);
+
+                    stringMap.put("id", wavePaymentResponse.getId());
+                    stringMap.put("wave_launch_url", wavePaymentResponse.getWaveLaunchUrl());
+                    stringMap.put("reserve", 0);
+                    return ResponseEntity.ok(stringMap);
+                }
+            } catch (Exception exc) {
+                System.out.println("Exception (generatewaveid) : " + exc.toString());
             }
-        }
-        catch (Exception exc){
-            System.out.println("Exception (generatewaveid) : "+exc.toString());
-        }
 
-        stringMap.put("id", "");
-        stringMap.put("wave_launch_url", "");
+            stringMap.put("id", "");
+            stringMap.put("wave_launch_url", "");
+            stringMap.put("reserve", 0);
+        }
+        else{
+            stringMap.put("id", "");
+            stringMap.put("wave_launch_url", "");
+            stringMap.put("reserve", totalReserve);
+        }
         return ResponseEntity.ok(stringMap);
     }
 
@@ -1144,6 +1164,7 @@ public class ApiController {
         Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
         Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
         Utilisateur owner = publication.getUtilisateur();
+
         //
         Reservation reservation = reservationRepository.
                 findByUtilisateurAndPublication(suscriber, publication);
@@ -1165,7 +1186,7 @@ public class ApiController {
                                 d -> {
                                     // Create new line in BONUS :
                                     Bonus bonus = new Bonus();
-                                    bonus.setMontant((double) publication.getPrix() * godfatherPayment);
+                                    bonus.setMontant((double) reservation.getMontant() * godfatherPayment);
                                     bonus.setUtilisateur(d.getUtilisateur());
                                     bonusRepository.save(bonus);
                                     // SUM UP bonuses
