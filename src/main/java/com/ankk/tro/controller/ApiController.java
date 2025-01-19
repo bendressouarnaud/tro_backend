@@ -134,13 +134,16 @@ public class ApiController {
             utilisateurRepository.save(yakasse);
              */
 
+
             /*Iterator<Utilisateur> users = utilisateurRepository.findAll().iterator();
             while(users.hasNext()) {
                 Utilisateur element = users.next();
-                System.out.println( element.getId() +"  ---   Nom : " +element.getNom() +
-                        "  ---   Pwd : " +element.getPwd() + "  ---   Smartphone : " +element.getSmartphoneType()
-                        + "  ---   mail : " +element.getEmail()
-                        + "  ---   active : " +element.getActive());
+                if(element.getPrenom().contains("ric")){
+                    System.out.println( element.getId() +"  ---   Nom : " +element.getNom() +
+                            "  ---   Pwd : " +element.getPwd() + "  ---   Smartphone : " +element.getSmartphoneType()
+                            + "  ---   mail : " +element.getEmail()
+                            + "  ---   active : " +element.getActive());
+                }
             }*/
 
             // Init 'LocalParameters' table
@@ -393,7 +396,7 @@ public class ApiController {
             //System.out.println("STREAM CHAT : "+newToken);
 
             // Sync :
-            //emailService.syncUserId(iD, keepUr.getNom());
+            emailService.syncUserId(iD, keepUr.getNom());
         }
 
         // Create DEFAULT 'CIBLE'
@@ -457,7 +460,7 @@ public class ApiController {
         stringMap.put("streamtoken", ur != null ? ur.getStreamChatToken() : "");
         stringMap.put("streamchatid", ur != null ? ur.getStreamChatId() : "");
         stringMap.put("pwd", "");
-        stringMap.put("codeinvitation", "");
+        stringMap.put("codeinvitation", ur != null ? ur.getCodeInvitation() : "");
         stringMap.put("villeresidence", ur != null ? ur.getVilleResidence().getId() : 0);
         List<CibleBean> cibleBean = new ArrayList<>();
         List<PublicationBean> publicationBeans = new ArrayList<>();
