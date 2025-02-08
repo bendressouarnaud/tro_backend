@@ -77,6 +77,9 @@ public class Utilisateur extends AbstractEntity{
     @OneToMany(fetch = LAZY, mappedBy = "utilisateur")
     private Collection<Bonus> bonuses;
 
+    @OneToMany(fetch = LAZY, mappedBy = "utilisateur")
+    private Collection<ReclamationPaiement> reclamationPaiements;
+
     @OneToOne
     @JoinColumn(name = "notification_param_id",  foreignKey = @ForeignKey(name = "FK_utilisateur_notification"))
     private NotificationsParam notificationsParam;

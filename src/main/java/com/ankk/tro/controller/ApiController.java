@@ -60,6 +60,7 @@ public class ApiController {
     private final RemboursementRepository remboursementRepository;
     private final NotificationsParamRepository notificationsParamRepository;
     private final LocalParametersRepository localParametersRepository;
+    private final ReclamationPaiementRepository reclamationPaiementRepository;
     private final Messervices messervices;
     private final Firebasemessage firebasemessage;
     private final EmailService emailService;
@@ -244,6 +245,27 @@ public class ApiController {
             stringMap.put("parrainage", codeParrainage);
             stringMap.put("bonus", bonus);
             return ResponseEntity.ok(stringMap);
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/requestpayment")
+    public ResponseEntity<?> requestpayment(
+            @RequestBody RequestPaymentBean data,
+            HttpServletRequest request
+    )
+    {
+        Utilisateur user = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        if(user != null){
+            // Add a new ROW :
+            ReclamationPaiement reclamationPaiement = new ReclamationPaiement();
+            reclamationPaiement.setMontant(data.getAmount());
+            reclamationPaiement.setUtilisateur(user);
+            reclamationPaiement.setMontantRegle(false);
+            // Persist :
+            reclamationPaiementRepository.save(reclamationPaiement);
+            return ResponseEntity.status(HttpStatus.OK).build();
         }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
     }

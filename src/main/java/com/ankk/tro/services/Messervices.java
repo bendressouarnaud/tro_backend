@@ -31,10 +31,10 @@ public class Messervices {
             finalName.append(name.charAt(0));
         }
         if(valeur.length == 0) {
-            finalName.append(String.valueOf(offsetDateTime.getMonthValue()));
+            //finalName.append(String.valueOf(offsetDateTime.getMonthValue()));
             finalName.append(String.valueOf(offsetDateTime.getDayOfMonth()));
             finalName.append(String.valueOf(offsetDateTime.getHour()));
-            finalName.append(String.valueOf(offsetDateTime.getMinute()));
+            //finalName.append(String.valueOf(offsetDateTime.getMinute()));
             finalName.append(String.valueOf(offsetDateTime.getSecond()));
         }
         return finalName.toString();
