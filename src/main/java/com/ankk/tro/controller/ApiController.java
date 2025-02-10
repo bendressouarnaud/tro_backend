@@ -154,6 +154,87 @@ public class ApiController {
                 localParameters.setId(1L);
                 localParameters.setEnvoiMail(true);
                 localParametersRepository.save(localParameters);
+
+                boolean newUser = false;
+                // find user :
+                Utilisateur ur = new Utilisateur();
+                ur.setActive(1);
+                ur.setValidateAccount(0);
+                ur.setSmartphoneType(SmartphoneType.ANDROID);
+                ur.setCodeInvitation("");
+                ur.setPwd(messervices.generatePwd("NGBANDAMA ARNAUD"));
+                // Feed or Update field :
+                ur.setNom("NGBANDAMA");
+                ur.setPrenom("ARNAUD");
+                ur.setContact("0707640051");
+                ur.setEmail("bendressoukonan@gmail.com");
+                ur.setAdresse("4 Rue de Charente");
+                ur.setFcmToken("c7WulpQSCUA_tleR7Qan2b:APA91bHromUaqpcMxO10NcTrqqZG3UKAFUKgUWCB75pS4PNBIJqYS7oLUXLsIpti7tbu2BpH-LmsocDbskdhpio-co1vQWpz_q_t2yNGSio6WxIasRBDun4");
+                // Process PIECE :
+                TypePiece typePiece = typePiece = new TypePiece();
+                typePiece.setLibelle("CNI");
+                typePieceRepository.save(typePiece);
+
+                ur.setTypePiece(typePiece);
+                ur.setNumeroPieceIdentite("1234XXX");
+                // Process on Pays :
+                Pays pays = new Pays();
+                pays.setId(1L);
+                pays.setLibelle("Côte d'ivoire");
+                pays.setAbreviation("CV");
+                paysRepository.save(pays);
+                ur.setPays(pays);
+
+                // Process on VILLE :
+                Ville villeResidence = new Ville();
+                villeResidence.setId(55L);
+                villeResidence.setLibelle("Bouaké");
+                villeResidence.setPays(pays);
+                villeRepository.save(villeResidence);
+                ur.setVilleResidence(villeResidence);
+
+                // From there
+                NotificationsParam notificationsParam = NotificationsParam.builder()
+                        .choix(0)
+                        .debut(OffsetDateTime.now(Clock.systemUTC()))
+                        .fin(OffsetDateTime.now(Clock.systemUTC()))
+                        .build();
+                notificationsParamRepository.save(notificationsParam);
+                ur.setNotificationsParam(notificationsParam);
+                //
+                Utilisateur keepUr = utilisateurRepository.save(ur);
+                var newToken = "";
+                var streamChatId = "";
+                // From there, GENERATE his STREAM CHAT 'TOKEN' :
+                String iD = messervices.generateCustomUserId(
+                        keepUr.getNom(), keepUr.getPrenom(), keepUr.getId());
+                streamChatId = iD;
+                newToken = User.createToken(iD, null, null);
+                keepUr.setStreamChatToken(newToken);
+                keepUr.setStreamChatId(streamChatId);
+                utilisateurRepository.save(keepUr);
+
+                // Sync :
+                emailService.syncUserId(iD, keepUr.getNom());
+
+                // Create DEFAULT 'CIBLE'
+                Cible cible = new Cible();
+                String codeParrainage = "";
+                cible.setUtilisateur(ur);
+                cible.setPaysDepart(pays);
+                cible.setVilleDepart(villeResidence);
+                cible.setPaysDestination(pays);
+                cible.setVilleDestination(villeResidence);
+                cible.setTopic("");
+                cibleRepository.save(cible);
+
+                // Create first CODE :
+                CodeFiliation codeFiliation = new CodeFiliation();
+                codeParrainage = messervices.generateCodeFiliation(
+                        (ur.getNom().trim() + " " + ur.getPrenom().trim()), ur.getId());
+                codeFiliation.setCode(codeParrainage);
+                codeFiliation.setUtilisateur(ur);
+                codeFiliationRepository.save(codeFiliation);
             }
 
             /*var token = User.createToken("john", null, null);
@@ -330,7 +411,7 @@ public class ApiController {
     {
         boolean newUser = false;
         // find user :
-        Utilisateur ur = utilisateurRepository.findByEmail(user.getEmail()).orElse(null);
+        Utilisateur ur = utilisateurRepository.findByEmail(user.getEmail().trim()).orElse(null);
         if(ur == null && user.getIduser() == 0){
             newUser = true;
             ur = new Utilisateur();

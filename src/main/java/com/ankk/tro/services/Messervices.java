@@ -70,7 +70,7 @@ public class Messervices {
     }
 
     public String generateCustomUserId(String name, String prenom, Long ids){
-        return name.charAt(0) + prenom.charAt(0) + ids.toString();
+        return name.charAt(0) + prenom.substring(0, 2) + ids.toString();
     }
 
     public UserTokenMobileOs generateObject(Utilisateur utilisateur){
