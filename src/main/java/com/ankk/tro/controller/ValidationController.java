@@ -49,6 +49,8 @@ public class ValidationController {
         modelAndView.setViewName("validation");
         Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
 
+        boolean reservationEnCours = reservation != null && reservation.getReservationState().equals(ReservationState.EN_COURS);
+
         // Find UTILISATEUR :
         Utilisateur utilisateur = reservation.getUtilisateur();
         // Find MONTANT :
@@ -99,14 +101,16 @@ public class ValidationController {
                 channel_ID);*/
 
         // Notify PUBLICATION's owner :
-        firebasemessage.notifyOwnerAboutNewReservation(owner,utilisateur,reservation.getPublication(),
-                paysSuscriber,
-                reservation.getReserve(), channel_ID);
+        if(reservationEnCours) {
+            firebasemessage.notifyOwnerAboutNewReservation(owner, utilisateur, reservation.getPublication(),
+                    paysSuscriber,
+                    reservation.getReserve(), channel_ID);
 
-        // Notify SUSCRIBER that PAYMENT has been DONE :
-        firebasemessage.notifySuscriberAboutReservationValidation(
-                utilisateur,owner,reservation,
-                paysOwner.getAbreviation(), channel_ID);
+            // Notify SUSCRIBER that PAYMENT has been DONE :
+            firebasemessage.notifySuscriberAboutReservationValidation(
+                    utilisateur, owner, reservation,
+                    paysOwner.getAbreviation(), channel_ID);
+        }
 
         return modelAndView;
     }
