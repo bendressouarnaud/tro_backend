@@ -496,7 +496,6 @@ public class ApiController {
             keepUr.setStreamChatToken(newToken);
             keepUr.setStreamChatId(streamChatId);
             utilisateurRepository.save(keepUr);
-            //System.out.println("STREAM CHAT : "+newToken);
 
             // Sync :
             emailService.syncUserId(iD, keepUr.getNom());
@@ -1284,6 +1283,29 @@ public class ApiController {
                 String.valueOf(publication.getId()));
 
         // Compute :
+        /*if(publication.getPrix() > 0) {
+        }
+        */
+
+        return ResponseEntity.ok(Optional.empty());
+    }
+
+    @CrossOrigin("*")
+    @PostMapping(path = "/markreceipt")
+    public ResponseEntity<?> markreceipt(
+            @RequestBody DeliveryRequest data,
+            HttpServletRequest request
+    )
+    {
+        // New LINE :
+        Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
+        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
+        Utilisateur owner = publication.getUtilisateur();
+        //
+        Reservation reservation = reservationRepository.
+                findByUtilisateurAndPublication(suscriber, publication);
+
+        // Process PRICE :
         if(publication.getPrix() > 0) {
             if (!suscriber.getCodeInvitation().isEmpty()) {
                 // Look for OWNER GODFATHER :
@@ -1336,22 +1358,6 @@ public class ApiController {
             }
         }
 
-        return ResponseEntity.ok(Optional.empty());
-    }
-
-    @CrossOrigin("*")
-    @PostMapping(path = "/markreceipt")
-    public ResponseEntity<?> markreceipt(
-            @RequestBody DeliveryRequest data,
-            HttpServletRequest request
-    )
-    {
-        // New LINE :
-        Utilisateur suscriber = utilisateurRepository.findById(data.getIduser()).orElse(null);
-        Publication publication = publicationRepository.findById(data.getIdpub()).orElse(null);
-        //
-        Reservation reservation = reservationRepository.
-                findByUtilisateurAndPublication(suscriber, publication);
         // Update :
         reservation.setReservationState(ReservationState.RECU);
         reservationRepository.save(reservation);
