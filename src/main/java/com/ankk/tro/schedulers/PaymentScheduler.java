@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Component
@@ -42,64 +43,72 @@ public class PaymentScheduler {
     public void execution(){
 
         // Look for RESERVATION with state TRAITE
+        OffsetDateTime nowTime = OffsetDateTime.now(Clock.systemUTC());
         List<Reservation> lesReservations = reservationRepository.
                 findAllByReservationStateAndLastUpdateDatetimeGreaterThanEqual(
-                ReservationState.TRAITE, OffsetDateTime.now(Clock.systemUTC()));
+                ReservationState.TRAITE, nowTime);
         lesReservations.forEach( reservation -> {
 
             Utilisateur suscriber = reservation.getUtilisateur();
             Publication publication = reservation.getPublication();
             Utilisateur owner = publication.getUtilisateur();
 
-            if(publication.getPrix() > 0) {
-                if (!suscriber.getCodeInvitation().isEmpty()) {
-                    // Look for OWNER GODFATHER :
-                    codeFiliationRepository.findByCode(suscriber.getCodeInvitation())
-                            .ifPresent(
-                                    d -> {
-                                        // Create new line in BONUS :
-                                        Bonus bonus = new Bonus();
-                                        bonus.setMontant((double) reservation.getMontant() * godfatherPayment);
-                                        bonus.setUtilisateur(d.getUtilisateur());
-                                        bonusRepository.save(bonus);
-                                        // SUM UP bonuses
-                                        List<Bonus> lesBonus =
-                                                bonusRepository.findByUtilisateur(d.getUtilisateur());
-                                        double totBonus = lesBonus.stream().mapToDouble(Bonus::getMontant).sum();
-                                        // Notify GODFATHER :
-                                        firebasemessage.notifyUserAboutBonus(d.getUtilisateur(),
-                                                publication.getIdentifiant(),
-                                                totBonus);
+            // Calculate Number of Days Between two OffsetDateTime
+            long numberOfDays = ChronoUnit.DAYS.between(reservation.getLastUpdateDatetime(),
+                    nowTime);
 
-                                        // Payment to OWNER
-                                        Bonus bonusOwner = new Bonus();
-                                        bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithGodfather);
-                                        bonusOwner.setUtilisateur(owner);
-                                        bonusRepository.save(bonusOwner);
-                                        // SUM UP bonuses
-                                        List<Bonus> lesBonusOwner =
-                                                bonusRepository.findByUtilisateur(owner);
-                                        double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
-                                        // Notify OWNER :
-                                        firebasemessage.notifyUserAboutBonus(owner,
-                                                publication.getIdentifiant(),
-                                                totBonusOwner);
-                                    }
-                            );
-                } else {
-                    // Payment to OWNER
-                    Bonus bonusOwner = new Bonus();
-                    bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithoutGodfather);
-                    bonusOwner.setUtilisateur(owner);
-                    bonusRepository.save(bonusOwner);
-                    // SUM UP bonuses
-                    List<Bonus> lesBonusOwner =
-                            bonusRepository.findByUtilisateur(owner);
-                    double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
-                    // Notify OWNER :
-                    firebasemessage.notifyUserAboutBonus(owner,
-                            publication.getIdentifiant(),
-                            totBonusOwner);
+            if(publication.getPrix() > 0) {
+                if(numberOfDays >= 2) {
+                    if (!suscriber.getCodeInvitation().isEmpty()) {
+                        // Look for OWNER GODFATHER :
+                        codeFiliationRepository.findByCode(suscriber.getCodeInvitation())
+                                .ifPresent(
+                                        d -> {
+                                            // Create new line in BONUS :
+                                            Bonus bonus = new Bonus();
+                                            bonus.setMontant((double) reservation.getMontant() * godfatherPayment);
+                                            bonus.setUtilisateur(d.getUtilisateur());
+                                            bonusRepository.save(bonus);
+                                            // SUM UP bonuses
+                                            List<Bonus> lesBonus =
+                                                    bonusRepository.findByUtilisateur(d.getUtilisateur());
+                                            double totBonus = lesBonus.stream().mapToDouble(Bonus::getMontant).sum();
+                                            // Notify GODFATHER :
+                                            firebasemessage.notifyUserAboutBonus(d.getUtilisateur(),
+                                                    publication.getIdentifiant(),
+                                                    totBonus);
+
+                                            // Payment to OWNER
+                                            Bonus bonusOwner = new Bonus();
+                                            bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithGodfather);
+                                            bonusOwner.setUtilisateur(owner);
+                                            bonusRepository.save(bonusOwner);
+                                            // SUM UP bonuses
+                                            List<Bonus> lesBonusOwner =
+                                                    bonusRepository.findByUtilisateur(owner);
+                                            double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
+                                            // Notify OWNER :
+                                            firebasemessage.notifyUserAboutBonus(owner,
+                                                    publication.getIdentifiant(),
+                                                    totBonusOwner);
+                                        }
+                                );
+                    }
+                    else {
+                        // Payment to OWNER
+                        Bonus bonusOwner = new Bonus();
+                        bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithoutGodfather);
+                        bonusOwner.setUtilisateur(owner);
+                        bonusRepository.save(bonusOwner);
+                        // SUM UP bonuses
+                        List<Bonus> lesBonusOwner =
+                                bonusRepository.findByUtilisateur(owner);
+                        double totBonusOwner = lesBonusOwner.stream().mapToDouble(Bonus::getMontant).sum();
+                        // Notify OWNER :
+                        firebasemessage.notifyUserAboutBonus(owner,
+                                publication.getIdentifiant(),
+                                totBonusOwner);
+                    }
                 }
             }
 
