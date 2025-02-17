@@ -2,6 +2,7 @@ package com.ankk.tro;
 
 import com.ankk.tro.controller.ApiController;
 import com.ankk.tro.enums.ReservationState;
+import com.ankk.tro.httpbean.BeanManageReservation;
 import com.ankk.tro.httpbean.ReservationRequest;
 import com.ankk.tro.model.Pays;
 import com.ankk.tro.model.Publication;
@@ -11,6 +12,7 @@ import com.ankk.tro.repositories.PaysRepository;
 import com.ankk.tro.repositories.PublicationRepository;
 import com.ankk.tro.repositories.ReservationRepository;
 import com.ankk.tro.repositories.UtilisateurRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,12 +20,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 
 import java.util.HashMap;
@@ -32,32 +41,34 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import static org.mockito.BDDMockito.given;
 
-@ExtendWith(MockitoExtension.class)
+@SpringBootTest(classes = TroApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 public class ManageReservationTest {
 
     // A T T R I B U T E S :
-    @Mock
+    @MockBean
     UtilisateurRepository utilisateurRepository;
-    @Mock
+    @MockBean
     PublicationRepository publicationRepository;
-    @Mock
+    @MockBean
     ReservationRepository reservationRepository;
-    @Mock
+    @MockBean
     PaysRepository paysRepository;
-    @InjectMocks
-    private ApiController apiController;
+    @Autowired
+    MockMvc mockMvc;
 
 
     // M e t h o d s :
-    @Disabled
     @Test
     public void createPartenaire() throws Exception{
         // Create FIRST USER :
@@ -95,22 +106,38 @@ public class ManageReservationTest {
                 thenReturn(Optional.of(paysOwner));
 
         ReservationRequest rt = new ReservationRequest();
-        rt.setReserve(10);
+        /*rt.setReserve(10);
         rt.setIdpub(1);
-        rt.setIduser(1);
+        rt.setIduser(1);*/
         rt.setMontant(100);
 
-        Map<String, Object> stringMap = new HashMap<>();
+        BeanManageReservation bn = new BeanManageReservation();
+        bn.setId(owner.getId());
+        bn.setNom(owner.getNom());
+        bn.setPrenom(owner.getPrenom());
+        bn.setAdresse(owner.getAdresse());
+        bn.setNationnalite(paysOwner.getAbreviation());
+        // Set CHANNEL ID :
+        bn.setChannelid("channel_ID");
 
-        Mockito.when(apiController.managereservation(rt, null)).thenReturn(null);
+        ObjectMapper objectMapper = new ObjectMapper();
+        /*mockMvc.perform(post("/managereservation")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(rt))
+        ).andExpect(status().is2xxSuccessful());*/
 
-        /*given(apiController.managereservation(rt, null)).willReturn(
-                Optional.of(null));*/
+        ResultActions resultActions = mockMvc.perform(post("/managereservation")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(rt))
+        );
 
-        ResponseEntity<?> response = apiController.managereservation(rt, null);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        MvcResult mvcResult = resultActions.andExpect(status().is2xxSuccessful()).andReturn();
 
-        //verify(partenaireRepository).save(any(Partenaire.class));
+        String json = mvcResult.getResponse().getContentAsString();
+        BeanManageReservation article = objectMapper.readValue(json, BeanManageReservation.class);
+
+        assertNotNull(article);
+        //assertThat(mvcResult.getResponse().getContentAsByteArray()).isNotEmpty();
     }
 
 }

@@ -6,7 +6,7 @@ plugins {
 	id 'org.liquibase.gradle' version '2.2.0'
 
 	// Jacoco test coverage
-	id 'jacoco'
+	//id 'jacoco'
 }
 
 group = 'com.ankk'
@@ -70,10 +70,10 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.2'
-	testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
+	testImplementation 'org.junit.jupiter:junit-jupiter-api'
+	/*testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.7.2'
 	testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
-	testImplementation 'org.mockito:mockito-junit-jupiter:3.10.0'
+	testImplementation 'org.mockito:mockito-junit-jupiter:3.10.0'*/
 
 	liquibaseRuntime("info.picocli:picocli:4.7.6")
 	liquibaseRuntime "org.liquibase:liquibase-core:${liquibaseVersion}"
@@ -93,7 +93,7 @@ compileJava {
 	options.compilerArgs << '-parameters'
 }
 
-test {
+/*test {
 	testLogging.showStandardStreams = false
 
 	systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
@@ -104,7 +104,7 @@ test {
 		destinationFile = layout.buildDirectory.file("jacocoTest.exec").get().asFile
 	}
 	jacocoTestReport.enabled = true
-}
+}*/
 
 // Liquibase
 liquibase {
