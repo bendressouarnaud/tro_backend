@@ -6,7 +6,7 @@ plugins {
 	id 'org.liquibase.gradle' version '2.2.0'
 
 	// Jacoco test coverage
-	//id 'jacoco'
+	id 'jacoco'
 }
 
 group = 'com.ankk'
@@ -86,6 +86,7 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy jacocoTestCoverageVerification
 }
 
 compileJava {
@@ -93,18 +94,57 @@ compileJava {
 	options.compilerArgs << '-parameters'
 }
 
-/*test {
+test {
 	testLogging.showStandardStreams = false
 
-	systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+	//systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
 
 	finalizedBy jacocoTestReport
 	jacoco {
+		enabled = true
 		excludes = ['com/ankk/tro/model/*']
 		destinationFile = layout.buildDirectory.file("jacocoTest.exec").get().asFile
 	}
 	jacocoTestReport.enabled = true
-}*/
+}
+
+jacocoTestReport {
+	dependsOn test // tests are required to run before generating the report
+}
+
+jacocoTestReport {
+	reports {
+		xml.required = true
+	}
+}
+
+
+// Minimum 0.5 , for CLASSES : 0.8
+jacocoTestCoverageVerification {
+	dependsOn test
+	enabled = true
+	violationRules {
+		rule {
+			limit {
+				minimum = 0.0
+			}
+		}
+		rule {
+			element = 'CLASS'
+			excludes = [
+					'com.ankk.tro.model.*',
+					'com.ankk.tro.httpbean.*'
+			]
+			limit {
+				counter = 'CLASS'
+				minimum = 0.0
+			}
+		}
+	}
+}
+
+// to run coverage verification during the build (and fail when appropriate)
+check.dependsOn jacocoTestCoverageVerification
 
 // Liquibase
 liquibase {

@@ -106,9 +106,9 @@ public class ManageReservationTest {
                 thenReturn(Optional.of(paysOwner));
 
         ReservationRequest rt = new ReservationRequest();
-        /*rt.setReserve(10);
+        rt.setReserve(10);
         rt.setIdpub(1);
-        rt.setIduser(1);*/
+        rt.setIduser(1);
         rt.setMontant(100);
 
         BeanManageReservation bn = new BeanManageReservation();

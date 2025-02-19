@@ -631,7 +631,7 @@ public class Firebasemessage {
                 publicationId,
                 "Nouveau BONUS");
         LocalParameters localParameters = localParametersRepository.findById(1L).orElse(null);
-        if(user.getSmartphoneType() == SmartphoneType.IPHONE) {
+        if(user.getSmartphoneType().getValue() == SmartphoneType.IPHONE.getValue()) {
             ApnsConfig apn =  ApnsConfig.builder()
                     .setAps(Aps.builder()
                             .setSound("default")

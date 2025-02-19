@@ -162,10 +162,10 @@ public class ApiController {
                 ur.setValidateAccount(0);
                 ur.setSmartphoneType(SmartphoneType.ANDROID);
                 ur.setCodeInvitation("");
-                ur.setPwd(messervices.generatePwd("NGBANDAMA ARNAUD"));
+                ur.setPwd(messervices.generatePwd("KONIN PONAN ARISTIDE"));
                 // Feed or Update field :
-                ur.setNom("NGBANDAMA");
-                ur.setPrenom("ARNAUD");
+                ur.setNom("KONIN");
+                ur.setPrenom("PONAN ARISTIDE");
                 ur.setContact("0707640051");
                 ur.setEmail("bendressoukonan@gmail.com");
                 ur.setAdresse("4 Rue de Charente");
@@ -179,7 +179,7 @@ public class ApiController {
                 ur.setNumeroPieceIdentite("1234XXX");
                 // Process on Pays :
                 Pays pays = new Pays();
-                pays.setId(1L);
+                pays.setId(2L);
                 pays.setLibelle("Côte d'ivoire");
                 pays.setAbreviation("CV");
                 paysRepository.save(pays);
@@ -484,8 +484,10 @@ public class ApiController {
             ur.setNotificationsParam(notificationsParam);
         }
         //
+        ur.setStreamChatToken(""); // DEFAULT VALUES
+        ur.setStreamChatId("");    // DEFAULT VALUES
         Utilisateur keepUr = utilisateurRepository.save(ur);
-        var newToken = "";
+        /*var newToken = "";
         var streamChatId = "";
         if(newUser){
             // From there, GENERATE his STREAM CHAT 'TOKEN' :
@@ -499,7 +501,7 @@ public class ApiController {
 
             // Sync :
             emailService.syncUserId(iD, keepUr.getNom());
-        }
+        }*/
 
         // Create DEFAULT 'CIBLE'
         Cible cible = new Cible();
@@ -535,8 +537,8 @@ public class ApiController {
         stringMap.put("typepiece", user.getTypepieceidentite());
         stringMap.put("cibleid", newUser ? cible.getId() : 0);
         stringMap.put("codeparrainage", codeParrainage);
-        stringMap.put("streamchatoken", newToken);
-        stringMap.put("streamchatid", streamChatId);
+        stringMap.put("streamchatoken", ""); //newToken
+        stringMap.put("streamchatid", ""); // streamChatId
         return ResponseEntity.ok(stringMap);
     }
 
@@ -736,14 +738,14 @@ public class ApiController {
     )
     {
         Cible cible = cibleRepository.findById(data.getId()).orElse(new Cible());
-        Pays paysDepart = paysRepository.findById(data.getIdpaysdep()).orElse(null);
-        if(paysDepart == null){
-            paysDepart = new Pays();
-            paysDepart.setId(data.getIdpaysdep());
-            paysDepart.setLibelle(data.getPaysdeplib());
-            paysDepart.setAbreviation(data.getPaysdepabrev());
-            paysRepository.save(paysDepart);
-        }
+        Pays paysDepart = paysRepository.findByAbreviation(data.getPaysdepabrev()).orElseGet( () -> {
+            Pays ps = new Pays();
+            ps.setId(data.getIdpaysdep());
+            ps.setLibelle(data.getPaysdeplib());
+            ps.setAbreviation(data.getPaysdepabrev());
+            paysRepository.save(ps);
+            return ps;
+        });
         Ville villeDepart = villeRepository.findById(data.getIdvilledep()).orElse(null);
         if(villeDepart == null){
             villeDepart = new Ville();
@@ -753,14 +755,14 @@ public class ApiController {
             villeRepository.save(villeDepart);
         }
         // Destination
-        Pays paysDestination = paysRepository.findById(data.getIdpaysdest()).orElse(null);
-        if(paysDestination == null){
-            paysDestination = new Pays();
-            paysDestination.setId(data.getIdpaysdest());
-            paysDestination.setLibelle(data.getPaysdestlib());
-            paysDestination.setAbreviation(data.getPaysdestabrev());
-            paysRepository.save(paysDestination);
-        }
+        Pays paysDestination = paysRepository.findByAbreviation(data.getPaysdestabrev()).orElseGet( () -> {
+            Pays ps = new Pays();
+            ps.setId(data.getIdpaysdest());
+            ps.setLibelle(data.getPaysdestlib());
+            ps.setAbreviation(data.getPaysdestabrev());
+            paysRepository.save(ps);
+            return ps;
+        });
         Ville villeDestination = villeRepository.findById(data.getIdvilledest()).orElse(null);
         if(villeDestination == null){
             villeDestination = new Ville();
@@ -1328,7 +1330,7 @@ public class ApiController {
 
                                     // Payment to OWNER
                                     Bonus bonusOwner = new Bonus();
-                                    bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithGodfather);
+                                    bonusOwner.setMontant((double) reservation.getMontant() * ownerPaymentWithGodfather);
                                     bonusOwner.setUtilisateur(owner);
                                     bonusRepository.save(bonusOwner);
                                     // SUM UP bonuses
@@ -1344,7 +1346,7 @@ public class ApiController {
             } else {
                 // Payment to OWNER
                 Bonus bonusOwner = new Bonus();
-                bonusOwner.setMontant((double) publication.getPrix() * ownerPaymentWithoutGodfather);
+                bonusOwner.setMontant((double) reservation.getMontant() * ownerPaymentWithoutGodfather);
                 bonusOwner.setUtilisateur(owner);
                 bonusRepository.save(bonusOwner);
                 // SUM UP bonuses
